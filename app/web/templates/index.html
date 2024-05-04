@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="rounded-lg border border-zinc-200 p-6">
+  <h1 class="text-lg font-semibold text-zinc-950">Check a domain</h1>
+  <p class="mt-1 text-zinc-600">
+    Enter a domain to inspect its DNS email records, authentication, and sender readiness.
+  </p>
+  <div class="mt-4 flex flex-col gap-3 sm:flex-row">
+    <label for="domain-input" class="sr-only">Domain name</label>
+    <input
+      id="domain-input"
+      name="domain"
+      type="text"
+      placeholder="yourstore.com"
+      class="flex-1 rounded-lg border border-zinc-300 px-3.5 py-2.5 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none"
+      disabled
+    >
+    <button
+      type="button"
+      class="rounded-lg bg-zinc-950 px-5 py-2.5 font-medium text-white opacity-60 cursor-not-allowed"
+      disabled
+    >
+      Check
+    </button>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,26 @@
+services:
+  unbound:
+    build:
+      context: ./unbound
+    restart: unless-stopped
+    networks:
+      - delivercheck
+
+  app:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      - unbound
+    ports:
+      - "127.0.0.1:${APP_PORT:-8085}:8000"
+    environment:
+      DNS_NAMESERVER: unbound
+      DNS_TIMEOUT_SECONDS: "3.0"
+    networks:
+      - delivercheck
+
+networks:
+  delivercheck:
+    driver: bridge

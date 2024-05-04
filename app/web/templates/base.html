@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title | default("DeliverCheck") }}</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/vendor/htmx.min.js" defer></script>
+</head>
+<body class="bg-white text-zinc-900 min-h-screen">
+  <div class="mx-auto max-w-5xl px-6 py-8">
+    <header class="pb-6 border-b border-zinc-200">
+      <div class="flex items-baseline justify-between gap-4">
+        <a href="/" class="text-xl font-semibold tracking-tight text-zinc-950">DeliverCheck</a>
+      </div>
+      <p class="mt-1 text-zinc-600">
+        Check if your email is ready to send and receive, and how to fix it.
+      </p>
+    </header>
+
+    <main class="py-8">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>
