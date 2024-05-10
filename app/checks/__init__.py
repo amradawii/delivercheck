@@ -1,0 +1,1 @@
+"""Domain email readiness checks."""
