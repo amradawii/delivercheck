@@ -1,0 +1,37 @@
+{% from "partials/status_macros.html" import status_text %}
+<section id="section-blocklists" aria-labelledby="blocklists-heading" class="rounded-lg border border-zinc-200 p-6">
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <h3 id="blocklists-heading" class="text-base font-semibold text-zinc-950">Blocklists</h3>
+      <p class="text-xs text-zinc-500 mt-0.5">
+        Checked domain plus {{ blocklists.checked_ips | length }} mail server IP{{ "" if (blocklists.checked_ips | length) == 1 else "s" }}.
+      </p>
+    </div>
+    {{ status_text(blocklists.status) }}
+  </div>
+
+  {% if blocklists.entries %}
+  <div class="mt-4 overflow-x-auto">
+    <table class="w-full text-left text-sm border-collapse">
+      <thead>
+        <tr class="border-b border-zinc-200 text-xs text-zinc-500">
+          <th class="py-2 pr-4 font-medium">Blocklist</th>
+          <th class="py-2 pr-4 font-medium">Target</th>
+          <th class="py-2 pr-4 font-medium">Status</th>
+          <th class="py-2 font-medium">Detail</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-zinc-100">
+        {% for entry in blocklists.entries %}
+        <tr>
+          <td class="py-2.5 pr-4 font-medium text-zinc-900">{{ entry.list_name }}</td>
+          <td class="py-2.5 pr-4 font-mono text-xs text-zinc-700">{{ entry.target }}</td>
+          <td class="py-2.5 pr-4 whitespace-nowrap">{{ status_text(entry.status) }}</td>
+          <td class="py-2.5 text-xs text-zinc-600">{{ entry.detail }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>

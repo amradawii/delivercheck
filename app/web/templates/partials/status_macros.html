@@ -1,0 +1,33 @@
+{% macro status_text(status, custom_label="") %}
+  {% if status in ("pass", "clean") %}
+    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700">
+      <span class="status-dot bg-emerald-600" aria-hidden="true"></span>
+      <span>{{ custom_label or ("Clean" if status == "clean" else "Pass") }}</span>
+    </span>
+  {% elif status in ("warn", "partly") %}
+    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700">
+      <span class="status-dot bg-amber-500" aria-hidden="true"></span>
+      <span>{{ custom_label or "Warning" }}</span>
+    </span>
+  {% elif status in ("fail", "listed", "error") %}
+    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-red-700">
+      <span class="status-dot bg-red-600" aria-hidden="true"></span>
+      <span>{{ custom_label or ("Listed" if status == "listed" else ("Error" if status == "error" else "Fail")) }}</span>
+    </span>
+  {% elif status == "needs_test_email" %}
+    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600">
+      <span class="status-dot bg-zinc-400" aria-hidden="true"></span>
+      <span>{{ custom_label or "Needs a test email" }}</span>
+    </span>
+  {% elif status == "could_not_check" %}
+    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600">
+      <span class="status-dot bg-zinc-400" aria-hidden="true"></span>
+      <span>{{ custom_label or "Could not check" }}</span>
+    </span>
+  {% else %}
+    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600">
+      <span class="status-dot bg-zinc-400" aria-hidden="true"></span>
+      <span>{{ custom_label or ("Unknown" if status == "unknown" else "Note") }}</span>
+    </span>
+  {% endif %}
+{% endmacro %}

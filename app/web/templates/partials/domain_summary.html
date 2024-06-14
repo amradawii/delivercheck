@@ -1,0 +1,132 @@
+{% from "partials/status_macros.html" import status_text %}
+<div id="section-summary" class="space-y-6">
+  <section class="rounded-lg border border-zinc-200 p-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <h2 class="text-lg font-semibold text-zinc-950 font-mono">{{ report.domain }}</h2>
+          {{ status_text(report.verdict_status) }}
+        </div>
+        <p class="mt-2 text-base text-zinc-900">{{ report.verdict_line }}</p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          data-copy-target="plain-text-report-{{ token }}"
+          class="rounded-lg border border-zinc-300 bg-white px-3.5 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+        >
+          Copy report
+        </button>
+      </div>
+    </div>
+
+    <textarea id="plain-text-report-{{ token }}" class="sr-only" readonly aria-hidden="true">{{ plain_text_report }}</textarea>
+
+    {% if report.mailbox_provider or report.sending_providers or report.dns_host %}
+    <div class="mt-4 pt-4 border-t border-zinc-200 text-sm text-zinc-700 flex flex-wrap items-center gap-x-4 gap-y-1">
+      <span class="font-medium text-zinc-950">Detected:</span>
+      {% if report.mailbox_provider %}
+        <span>Email: <strong class="font-medium text-zinc-950">{{ report.mailbox_provider.name }}</strong></span>
+      {% endif %}
+      {% if report.sending_providers %}
+        <span>
+          Also sending:
+          <strong class="font-medium text-zinc-950">{{ report.sending_providers | map(attribute='name') | join(', ') }}</strong>
+        </span>
+      {% endif %}
+      {% if report.dns_host %}
+        <span>
+          DNS host:
+          <strong class="font-medium text-zinc-950">{{ report.dns_host.name }}</strong>
+          (<a href="{{ report.dns_host.guide_url }}" target="_blank" rel="noopener noreferrer" class="underline text-zinc-700 hover:text-zinc-950">Where to add DNS records</a>)
+        </span>
+      {% endif %}
+    </div>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="checklist-heading" class="rounded-lg border border-zinc-200 p-6">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h3 id="checklist-heading" class="text-base font-semibold text-zinc-950">
+        Gmail &amp; Yahoo 2024 sender requirements
+      </h3>
+      <span class="text-xs text-zinc-500">{{ report.checklist.timeline_note }}</span>
+    </div>
+    <p class="mt-1 text-xs text-zinc-500">{{ report.checklist.bulk_threshold_note }}</p>
+
+    <div class="mt-4 divide-y divide-zinc-200 border-t border-zinc-200">
+      {% for item in report.checklist.items %}
+      <div class="py-3 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div class="min-w-0">
+          <div class="text-sm font-medium text-zinc-950">{{ item.title }}</div>
+          <p class="mt-0.5 text-sm text-zinc-600">{{ item.detail }}</p>
+          {% if item.fix %}
+          <p class="mt-1 text-xs text-zinc-700"><span class="font-medium text-zinc-950">Fix:</span> {{ item.fix }}</p>
+          {% endif %}
+        </div>
+        <div class="shrink-0">
+          {{ status_text(item.status) }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section aria-labelledby="findings-heading" class="rounded-lg border border-zinc-200 p-6">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h3 id="findings-heading" class="text-base font-semibold text-zinc-950">Findings (worst first)</h3>
+      <span class="text-xs text-zinc-500">
+        {{ report.fail_count }} fail · {{ report.warn_count }} warning
+      </span>
+    </div>
+
+    <div class="mt-4 divide-y divide-zinc-200 border-t border-zinc-200">
+      {% for finding in report.findings %}
+      <article class="py-4 space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-mono text-xs text-zinc-500">{{ finding.section }}</span>
+            <h4 class="text-sm font-semibold text-zinc-950">{{ finding.title }}</h4>
+          </div>
+          {{ status_text(finding.severity) }}
+        </div>
+
+        <p class="text-sm text-zinc-700">{{ finding.summary }}</p>
+
+        {% if finding.fix %}
+        <p class="text-sm text-zinc-800">
+          <span class="font-medium text-zinc-950">Fix:</span> {{ finding.fix }}
+        </p>
+        {% endif %}
+
+        {% if finding.record_value %}
+        <div class="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div class="min-w-0 overflow-x-auto">
+            {% if finding.record_host %}
+            <div class="text-xs text-zinc-500 mb-0.5">Host: <span class="font-mono text-zinc-800">{{ finding.record_host }}</span></div>
+            {% endif %}
+            <code class="text-xs font-mono text-zinc-950 break-all">{{ finding.record_value }}</code>
+          </div>
+          <button
+            type="button"
+            data-copy-text="{{ finding.record_value }}"
+            class="shrink-0 self-start sm:self-center rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-100"
+          >
+            Copy
+          </button>
+        </div>
+        {% if report.dns_host %}
+        <p class="text-xs text-zinc-500">
+          Where to add it:
+          <a href="{{ report.dns_host.guide_url }}" target="_blank" rel="noopener noreferrer" class="underline text-zinc-700 hover:text-zinc-950">
+            {{ report.dns_host.name }} DNS guide
+          </a>
+        </p>
+        {% endif %}
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+</div>

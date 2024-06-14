@@ -1,0 +1,73 @@
+<div class="space-y-6" data-domain-report-token="{{ session.token }}">
+  <div
+    id="section-summary"
+    hx-get="/domain/sections/{{ session.token }}/summary"
+    hx-trigger="load"
+    hx-swap="outerHTML"
+    class="rounded-lg border border-zinc-200 p-6 text-sm text-zinc-500"
+  >
+    Analyzing <span class="font-mono text-zinc-900">{{ session.display_domain }}</span> and assembling findings...
+  </div>
+
+  <div class="grid gap-6">
+    <div
+      id="section-mx"
+      hx-get="/domain/sections/{{ session.token }}/mx"
+      hx-trigger="load"
+      hx-swap="outerHTML"
+      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+    >
+      Checking MX records...
+    </div>
+
+    <div
+      id="section-spf"
+      hx-get="/domain/sections/{{ session.token }}/spf"
+      hx-trigger="load"
+      hx-swap="outerHTML"
+      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+    >
+      Checking SPF record and counting DNS lookups...
+    </div>
+
+    <div
+      id="section-dkim"
+      hx-get="/domain/sections/{{ session.token }}/dkim"
+      hx-trigger="load"
+      hx-swap="outerHTML"
+      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+    >
+      Probing DKIM selectors...
+    </div>
+
+    <div
+      id="section-dmarc"
+      hx-get="/domain/sections/{{ session.token }}/dmarc"
+      hx-trigger="load"
+      hx-swap="outerHTML"
+      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+    >
+      Checking DMARC policy and reporting records...
+    </div>
+
+    <div
+      id="section-blocklists"
+      hx-get="/domain/sections/{{ session.token }}/blocklists"
+      hx-trigger="load"
+      hx-swap="outerHTML"
+      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+    >
+      Checking domain and mail IP blocklists...
+    </div>
+
+    <div
+      id="section-extras"
+      hx-get="/domain/sections/{{ session.token }}/extras"
+      hx-trigger="load"
+      hx-swap="outerHTML"
+      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+    >
+      Checking MTA-STS, TLS-RPT, and BIMI...
+    </div>
+  </div>
+</div>
