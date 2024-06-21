@@ -11,7 +11,8 @@ from fastapi.templating import Jinja2Templates
 from app.checks.dkim import normalize_selector
 from app.checks.fixes import suggest_dmarc_fix, suggest_spf_fix
 from app.report.plain_text import render_domain_report_text
-from app.web.validation import validate_domain_input
+from app.smtp.receive_test import render_receive_report_text, run_receive_test
+from app.web.validation import validate_domain_input, validate_email_input
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -212,3 +213,51 @@ async def domain_report_plain_text(request: Request, token: str) -> PlainTextRes
         return PlainTextResponse("Report session expired.", status_code=404)
     report = await session.report_task
     return PlainTextResponse(render_domain_report_text(report))
+
+
+@router.post("/server/receive", response_class=HTMLResponse)
+async def test_mail_server_receive(
+    request: Request,
+    email: str = Form(default=""),
+) -> HTMLResponse:
+    decision = request.app.state.rate_limiter.check("server", _client_ip(request))
+    if not decision.allowed:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/domain_error.html",
+            status_code=429,
+            context={
+                "error_title": "Too many server tests from this address",
+                "error_message": (
+                    f"Server tests open live connections and are strictly rate-limited. "
+                    f"Please wait {decision.retry_after_seconds} seconds and try again."
+                ),
+                "suggested_domain": None,
+            },
+        )
+
+    validation = validate_email_input(email)
+    if not validation.ok or not validation.email:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/domain_error.html",
+            status_code=400,
+            context={
+                "error_title": "Check your email address",
+                "error_message": validation.error or "Please enter a valid email address.",
+                "suggested_domain": None,
+            },
+        )
+
+    receive_runner = getattr(request.app.state, "receive_test_runner", None) or run_receive_test
+    report = await receive_runner(validation.email, request.app.state.resolver)
+    plain_text = render_receive_report_text(report)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/server_receive_report.html",
+        context={
+            "report": report,
+            "plain_text_report": plain_text,
+        },
+    )

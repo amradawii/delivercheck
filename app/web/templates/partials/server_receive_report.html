@@ -1,0 +1,172 @@
+{% from "partials/status_macros.html" import status_text %}
+<div class="space-y-6">
+  <section class="rounded-lg border border-zinc-200 p-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          <h2 class="text-lg font-semibold text-zinc-950">
+            Ready to receive: {{ report.verdict_label }}
+          </h2>
+          {% if report.verdict == "ready" %}
+            {{ status_text("pass", "Ready") }}
+          {% elif report.verdict == "partly" %}
+            {{ status_text("warn", "Partly") }}
+          {% else %}
+            {{ status_text("fail", "Not ready") }}
+          {% endif %}
+        </div>
+        <p class="mt-2 text-base text-zinc-900">{{ report.verdict_summary }}</p>
+        <p class="mt-1 text-xs text-zinc-500 font-mono">
+          Tested mailbox: {{ report.email }}{% if report.provider %} · Provider: {{ report.provider.name }}{% endif %}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        data-copy-target="receive-plain-text-report"
+        class="rounded-lg border border-zinc-300 bg-white px-3.5 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+      >
+        Copy report
+      </button>
+    </div>
+
+    <textarea id="receive-plain-text-report" class="sr-only" readonly aria-hidden="true">{{ plain_text_report }}</textarea>
+  </section>
+
+  {% if report.issues %}
+  <section aria-labelledby="server-findings-heading" class="rounded-lg border border-zinc-200 p-6">
+    <h3 id="server-findings-heading" class="text-base font-semibold text-zinc-950">Findings</h3>
+    <div class="mt-4 divide-y divide-zinc-200 border-t border-zinc-200">
+      {% for issue in report.issues %}
+      <article class="py-3.5 space-y-1.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h4 class="text-sm font-semibold text-zinc-950">{{ issue.title }}</h4>
+          {{ status_text(issue.severity) }}
+        </div>
+        <p class="text-sm text-zinc-700">{{ issue.detail }}</p>
+        {% if issue.fix %}
+        <p class="text-sm text-zinc-800">
+          <span class="font-medium text-zinc-950">Fix:</span> {{ issue.fix }}
+        </p>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% for host in report.hosts %}
+  <section class="rounded-lg border border-zinc-200 p-6 space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h3 class="text-base font-semibold text-zinc-950 font-mono">
+          {{ host.mx_host }}
+        </h3>
+        <p class="text-xs text-zinc-500 font-mono mt-0.5">
+          Priority {{ host.priority }} · IP {{ host.ip or "unresolved" }}
+          {% if host.connect_ms is not none %} · Connect {{ host.connect_ms | round | int }} ms{% endif %}
+          {% if host.banner_ms is not none %} · Banner {{ host.banner_ms | round | int }} ms{% endif %}
+        </p>
+      </div>
+      {% if host.reachable %}
+        {{ status_text("pass", "Reachable") }}
+      {% else %}
+        {{ status_text("fail", "Unreachable") }}
+      {% endif %}
+    </div>
+
+    {% if host.reachable %}
+    <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm border-t border-zinc-200 pt-4">
+      <div>
+        <dt class="text-xs text-zinc-500">STARTTLS &amp; TLS</dt>
+        <dd class="mt-0.5 text-zinc-900">
+          {% if host.supports_starttls %}
+            {% if host.certificate and host.certificate.verified %}
+              {{ status_text("pass", host.tls_version or "TLS verified") }}
+            {% else %}
+              {{ status_text("warn", (host.tls_version or "TLS") + " (certificate issue)") }}
+            {% endif %}
+          {% else %}
+            {{ status_text("warn", "Not supported") }}
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs text-zinc-500">Certificate</dt>
+        <dd class="mt-0.5 text-xs font-mono text-zinc-800">
+          {% if host.certificate %}
+            {% if host.certificate.not_after %}
+              Expires {{ host.certificate.not_after.strftime("%Y-%m-%d") }}
+              ({{ host.certificate.days_until_expiry }} days)
+            {% endif %}
+            · Hostname {{ "matches" if host.certificate.hostname_matches else "mismatch" }}
+          {% else %}
+            Not available
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs text-zinc-500">Reverse DNS (PTR)</dt>
+        <dd class="mt-0.5 text-xs font-mono text-zinc-800">
+          {% if host.ptr_hostname %}
+            {{ host.ptr_hostname }} ({{ "forward-confirmed" if host.fcrdns_valid else "not forward-confirmed" }})
+          {% else %}
+            No PTR record
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs text-zinc-500">Open relay test</dt>
+        <dd class="mt-0.5">
+          {% if host.relay_status == "rejected" %}
+            {{ status_text("pass", "Rejected (safe)") }}
+          {% elif host.relay_status == "open_relay" %}
+            {{ status_text("fail", "Open relay detected") }}
+          {% else %}
+            {{ status_text("info", "Inconclusive") }}
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs text-zinc-500">Mailbox check ({{ report.email }})</dt>
+        <dd class="mt-0.5">
+          {% if host.mailbox_status == "accepted" %}
+            {{ status_text("pass", "Accepted") }}
+          {% elif host.mailbox_status == "catch_all" %}
+            {{ status_text("info", "Catch-all (accepts any address)") }}
+          {% elif host.mailbox_status == "greylisted" %}
+            {{ status_text("warn", "Temporarily deferred (greylisting)") }}
+          {% elif host.mailbox_status == "rejected" %}
+            {{ status_text("fail", "Rejected (user unknown)") }}
+          {% elif host.mailbox_status == "refused" %}
+            {{ status_text("info", "Server refused to tell") }}
+          {% else %}
+            {{ status_text("info", "Not tested") }}
+          {% endif %}
+        </dd>
+      </div>
+
+      {% if host.ehlo_capabilities %}
+      <div>
+        <dt class="text-xs text-zinc-500">EHLO capabilities</dt>
+        <dd class="mt-0.5 text-xs font-mono text-zinc-700">{{ host.ehlo_capabilities | join(", ") }}</dd>
+      </div>
+      {% endif %}
+    </dl>
+    {% endif %}
+
+    {% if host.transcript %}
+    <details class="border-t border-zinc-200 pt-3">
+      <summary class="cursor-pointer text-xs font-medium text-zinc-600 hover:text-zinc-950">
+        SMTP conversation (raw transcript)
+      </summary>
+      <pre class="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs font-mono text-zinc-800 overflow-x-auto whitespace-pre-wrap">{{ host.transcript }}</pre>
+    </details>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>

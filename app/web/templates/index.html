@@ -64,12 +64,48 @@
 <section aria-labelledby="server-test-heading" class="rounded-lg border border-zinc-200 p-6">
   <h1 id="server-test-heading" class="text-lg font-semibold text-zinc-950">Test a mail server</h1>
   <p class="mt-1 text-zinc-600">
-    Connect to a domain's mail servers to test STARTTLS, certificate validity, open relay safety, mailbox acceptance, and optional SMTP sending.
+    Enter an email address to connect to its receiving mail servers and test STARTTLS, certificate validity, reverse DNS, open relay safety, and mailbox acceptance.
   </p>
-  <p class="mt-4 text-sm text-zinc-500">
-    Live SMTP server diagnostics are being added next.
-  </p>
+
+  <form
+    hx-post="/server/receive"
+    hx-target="#server-report"
+    hx-swap="innerHTML"
+    hx-indicator="#server-loading"
+    class="mt-5 space-y-3"
+  >
+    <div class="flex flex-col gap-3 sm:flex-row">
+      <div class="flex-1">
+        <label for="server-email-input" class="sr-only">Email address to test</label>
+        <input
+          id="server-email-input"
+          name="email"
+          type="email"
+          placeholder="info@yourstore.com"
+          autocomplete="off"
+          spellcheck="false"
+          required
+          class="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-zinc-950 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none"
+        >
+      </div>
+      <button
+        type="submit"
+        class="rounded-lg bg-zinc-950 px-6 py-2.5 font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2"
+      >
+        Test
+      </button>
+    </div>
+
+    <div class="flex items-center justify-between text-xs text-zinc-500">
+      <span>Never sends email body data (DATA) to third-party servers.</span>
+      <span id="server-loading" class="htmx-indicator text-zinc-600">
+        Connecting to mail servers...
+      </span>
+    </div>
+  </form>
 </section>
+
+<div id="server-report" class="mt-6" aria-live="polite"></div>
 
 {% elif active_tab == "email" %}
 <section aria-labelledby="test-email-heading" class="rounded-lg border border-zinc-200 p-6">

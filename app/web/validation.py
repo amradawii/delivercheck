@@ -21,6 +21,18 @@ class DomainValidationResult:
     suggested_domain: str | None = None
 
 
+@dataclass(frozen=True)
+class EmailValidationResult:
+    ok: bool
+    email: str | None = None
+    local_part: str | None = None
+    domain: str | None = None
+    error: str | None = None
+
+
+_LOCAL_PART_RE = re.compile(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}$")
+
+
 def validate_domain_input(raw: str) -> DomainValidationResult:
     """Validate and normalize a domain name, giving clear messages for URLs and emails."""
     cleaned = raw.strip()
@@ -117,4 +129,56 @@ def validate_domain_input(raw: str) -> DomainValidationResult:
         ok=True,
         domain=ascii_domain,
         display_domain=display_domain,
+    )
+
+
+def validate_email_input(raw: str) -> EmailValidationResult:
+    """Validate an email address such as info@yourstore.com for mail server tests."""
+    cleaned = raw.strip()
+    if not cleaned:
+        return EmailValidationResult(
+            ok=False,
+            error="Enter an email address such as info@yourstore.com.",
+        )
+    if any(ch.isspace() for ch in cleaned):
+        return EmailValidationResult(
+            ok=False,
+            error="Email addresses cannot contain spaces.",
+        )
+    if "@" not in cleaned:
+        return EmailValidationResult(
+            ok=False,
+            error=(
+                f"Enter a full email address (for example, info@{cleaned.lower()}), "
+                "not just a domain."
+            ),
+        )
+    parts = cleaned.split("@")
+    if len(parts) != 2:
+        return EmailValidationResult(
+            ok=False,
+            error="Enter a single valid email address such as info@yourstore.com.",
+        )
+    local_part, raw_domain = parts[0], parts[1]
+    if (
+        not _LOCAL_PART_RE.match(local_part)
+        or local_part.startswith(".")
+        or local_part.endswith(".")
+        or ".." in local_part
+    ):
+        return EmailValidationResult(
+            ok=False,
+            error="The part before '@' is not a valid email mailbox name.",
+        )
+    domain_check = validate_domain_input(raw_domain)
+    if not domain_check.ok or not domain_check.domain:
+        return EmailValidationResult(
+            ok=False,
+            error=domain_check.error or "The domain part of the email address is invalid.",
+        )
+    return EmailValidationResult(
+        ok=True,
+        email=f"{local_part}@{domain_check.domain}",
+        local_part=local_part,
+        domain=domain_check.domain,
     )

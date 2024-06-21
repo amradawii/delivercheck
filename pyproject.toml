@@ -16,6 +16,7 @@ dependencies = [
     "dnspython>=2.6.1,<2.7.0",
     "cryptography>=42.0.5,<43.0.0",
     "publicsuffixlist>=0.10.0,<1.0.0",
+    "aiosmtpd>=1.4.6,<1.5.0",
 ]
 
 [project.optional-dependencies]
@@ -52,5 +53,5 @@ module = ["app.checks.*", "app.smtp.*"]
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["publicsuffixlist", "publicsuffixlist.*"]
+module = ["publicsuffixlist", "publicsuffixlist.*", "aiosmtpd", "aiosmtpd.*"]
 ignore_missing_imports = true
