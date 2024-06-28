@@ -1,0 +1,35 @@
+<div
+  id="inbox-poll-{{ slot.token }}"
+  hx-get="/inbox/poll/{{ slot.token }}"
+  hx-trigger="every 3s"
+  hx-swap="outerHTML"
+  class="rounded-lg border border-zinc-200 p-6 space-y-4"
+  data-inbox-token="{{ slot.token }}"
+>
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="text-base font-semibold text-zinc-950">Your temporary test address</h2>
+    <span class="text-xs text-zinc-500">Expires in {{ minutes_remaining }} minute{{ "" if minutes_remaining == 1 else "s" }}</span>
+  </div>
+
+  <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-3.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <code class="text-sm font-mono text-zinc-950 break-all">{{ slot.address }}</code>
+    <button
+      type="button"
+      data-copy-text="{{ slot.address }}"
+      class="shrink-0 self-start sm:self-center rounded-lg border border-zinc-300 bg-white px-3.5 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-100"
+    >
+      Copy
+    </button>
+  </div>
+
+  <div class="flex items-center gap-2 text-sm text-zinc-600">
+    <span class="status-dot bg-zinc-400" aria-hidden="true"></span>
+    <span>Waiting for your email... checking automatically every 3 seconds.</span>
+  </div>
+
+  {% if is_local_inbox %}
+  <p class="text-xs text-zinc-500 border-t border-zinc-200 pt-3">
+    Running locally on <span class="font-mono">{{ slot.address.split("@")[1] }}</span>: external mail providers cannot route to a local domain. To test locally, send an SMTP message directly to <span class="font-mono">127.0.0.1:{{ inbox_port }}</span> addressed to <span class="font-mono">{{ slot.address }}</span>.
+  </p>
+  {% endif %}
+</div>

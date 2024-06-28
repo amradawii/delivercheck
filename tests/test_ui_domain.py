@@ -53,7 +53,12 @@ def _build_test_app(*, max_domain_requests: int = 30) -> TestClient:
     limiter = RateLimiter(
         {"domain": RateLimitRule(max_requests=max_domain_requests, window_seconds=60.0)}
     )
-    app = create_app(resolver=resolver, rate_limiter=limiter, policy_fetcher=fake_fetcher)
+    app = create_app(
+        resolver=resolver,
+        rate_limiter=limiter,
+        policy_fetcher=fake_fetcher,
+        enable_smtp_inbox=False,
+    )
     return TestClient(app)
 
 

@@ -1,0 +1,161 @@
+{% from "partials/status_macros.html" import status_text %}
+<div id="email-report-{{ token }}" class="space-y-6">
+  <section class="rounded-lg border border-zinc-200 p-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          <h2 class="text-lg font-semibold text-zinc-950">Received test email</h2>
+          {{ status_text(report.verdict_status) }}
+        </div>
+        <p class="mt-2 text-base text-zinc-900">{{ report.verdict_line }}</p>
+        <p class="mt-1 text-xs text-zinc-500 font-mono">
+          Subject: {{ report.subject }} · Size: {{ report.size_bytes }} bytes
+        </p>
+      </div>
+
+      <button
+        type="button"
+        data-copy-target="email-plain-text-{{ token }}"
+        class="rounded-lg border border-zinc-300 bg-white px-3.5 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+      >
+        Copy report
+      </button>
+    </div>
+
+    <textarea id="email-plain-text-{{ token }}" class="sr-only" readonly aria-hidden="true">{{ plain_text_report }}</textarea>
+
+    <dl class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm border-t border-zinc-200 pt-4">
+      <div>
+        <dt class="text-xs text-zinc-500">From</dt>
+        <dd class="mt-0.5 font-mono text-xs text-zinc-950 break-all">{{ report.from_header or "(missing)" }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-zinc-500">Return-Path (MAIL FROM)</dt>
+        <dd class="mt-0.5 font-mono text-xs text-zinc-950 break-all">{{ report.mail_from or "(empty)" }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-zinc-500">Connecting IP &amp; PTR</dt>
+        <dd class="mt-0.5 font-mono text-xs text-zinc-900">
+          {{ report.peer_ip }}
+          {% if report.ptr_hostname %}
+            · {{ report.ptr_hostname }} ({{ "FCrDNS ok" if report.fcrdns_valid else "no FCrDNS" }})
+          {% else %}
+            · No PTR
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs text-zinc-500">SPF</dt>
+        <dd class="mt-0.5">
+          {% if report.spf and report.spf.result == "pass" %}
+            {{ status_text("pass", "Pass" + (" (aligned)" if report.spf_aligned_relaxed else " (unaligned)")) }}
+          {% elif report.spf %}
+            {{ status_text("fail", report.spf.result | upper) }}
+          {% else %}
+            {{ status_text("warn", "Not evaluated") }}
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs text-zinc-500">DKIM</dt>
+        <dd class="mt-0.5">
+          {% set valid_sigs = report.dkim_signatures | selectattr("verified") | list %}
+          {% if valid_sigs %}
+            {{ status_text("pass", (valid_sigs | length | string) + " valid signature" + ("" if (valid_sigs | length) == 1 else "s")) }}
+          {% elif report.dkim_signatures %}
+            {{ status_text("fail", "Verification failed") }}
+          {% else %}
+            {{ status_text("fail", "No signature") }}
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs text-zinc-500">DMARC</dt>
+        <dd class="mt-0.5">
+          {% if report.dmarc_result == "pass" %}
+            {{ status_text("pass", "Pass (p=" + (report.dmarc_policy or "none") + ")") }}
+          {% elif report.dmarc_result == "none" %}
+            {{ status_text("warn", "No DMARC record") }}
+          {% else %}
+            {{ status_text("fail", "Fail (p=" + (report.dmarc_policy or "none") + ")") }}
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs text-zinc-500">TLS in transit</dt>
+        <dd class="mt-0.5">
+          {% if report.tls_used %}
+            {{ status_text("pass", report.tls_version or "TLS encrypted") }}
+          {% else %}
+            {{ status_text("warn", "Unencrypted") }}
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs text-zinc-500">One-click unsubscribe (RFC 8058)</dt>
+        <dd class="mt-0.5">
+          {% if report.one_click_unsubscribe_valid %}
+            {{ status_text("pass", "Valid") }}
+          {% else %}
+            {{ status_text("info", "Not present") }}
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs text-zinc-500">Message parts</dt>
+        <dd class="mt-0.5 text-xs text-zinc-700">
+          Plain text: {{ "yes" if report.has_text_plain else "no" }} ·
+          HTML: {{ "yes" if report.has_text_html else "no" }}
+          {% if report.attachment_count %} · {{ report.attachment_count }} attachment{{ "" if report.attachment_count == 1 else "s" }} (not stored){% endif %}
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  {% if report.dkim_signatures %}
+  <section class="rounded-lg border border-zinc-200 p-6">
+    <h3 class="text-base font-semibold text-zinc-950">DKIM signatures</h3>
+    <div class="mt-3 divide-y divide-zinc-200 border-t border-zinc-200 text-xs">
+      {% for sig in report.dkim_signatures %}
+      <div class="py-3 flex flex-wrap items-center justify-between gap-2">
+        <div class="font-mono text-zinc-900">
+          d={{ sig.domain or "?" }} · s={{ sig.selector or "?" }} · a={{ sig.algorithm or "?" }}
+          · aligned={{ "yes" if sig.aligned_relaxed else "no" }}
+        </div>
+        {% if sig.verified %}
+          {{ status_text("pass", "Verified") }}
+        {% else %}
+          {{ status_text("fail", "Failed") }}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section aria-labelledby="email-findings-heading-{{ token }}" class="rounded-lg border border-zinc-200 p-6">
+    <h3 id="email-findings-heading-{{ token }}" class="text-base font-semibold text-zinc-950">Findings</h3>
+    <div class="mt-4 divide-y divide-zinc-200 border-t border-zinc-200">
+      {% for issue in report.issues %}
+      <article class="py-3.5 space-y-1.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h4 class="text-sm font-semibold text-zinc-950">{{ issue.title }}</h4>
+          {{ status_text(issue.severity) }}
+        </div>
+        <p class="text-sm text-zinc-700">{{ issue.detail }}</p>
+        {% if issue.fix %}
+        <p class="text-sm text-zinc-800">
+          <span class="font-medium text-zinc-950">Fix:</span> {{ issue.fix }}
+        </p>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+</div>

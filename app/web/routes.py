@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.checks.dkim import normalize_selector
 from app.checks.fixes import suggest_dmarc_fix, suggest_spf_fix
+from app.inbox.analyze import render_email_report_text
 from app.report.plain_text import render_domain_report_text
 from app.smtp.receive_test import render_receive_report_text, run_receive_test
 from app.web.validation import validate_domain_input, validate_email_input
@@ -35,6 +36,7 @@ async def home(
     domain: str = Query(default=""),
 ) -> HTMLResponse:
     active_tab = tab if tab in VALID_TABS else "domain"
+    settings = request.app.state.settings
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -42,6 +44,8 @@ async def home(
             "page_title": "DeliverCheck — Check if your email is ready to send and receive",
             "active_tab": active_tab,
             "prefill_domain": domain.strip(),
+            "is_local_inbox": settings.is_local_inbox_domain,
+            "inbox_port": settings.smtp_inbox_port,
         },
     )
 
@@ -259,5 +263,85 @@ async def test_mail_server_receive(
         context={
             "report": report,
             "plain_text_report": plain_text,
+        },
+    )
+
+
+@router.post("/inbox/new", response_class=HTMLResponse)
+async def create_test_inbox_address(request: Request) -> HTMLResponse:
+    decision = request.app.state.rate_limiter.check("inbox", _client_ip(request))
+    if not decision.allowed:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/domain_error.html",
+            status_code=429,
+            context={
+                "error_title": "Too many test addresses created",
+                "error_message": (
+                    f"Please wait {decision.retry_after_seconds} seconds before creating "
+                    "another temporary test address."
+                ),
+                "suggested_domain": None,
+            },
+        )
+
+    store = request.app.state.inbox_store
+    slot = store.create_slot()
+    settings = request.app.state.settings
+    mins = max(1, (slot.seconds_remaining(store.now()) + 59) // 60)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/inbox_waiting.html",
+        context={
+            "slot": slot,
+            "minutes_remaining": mins,
+            "is_local_inbox": settings.is_local_inbox_domain,
+            "inbox_port": settings.smtp_inbox_port,
+        },
+    )
+
+
+@router.get("/inbox/poll/{token}", response_class=HTMLResponse)
+async def poll_test_inbox(request: Request, token: str) -> HTMLResponse:
+    store = request.app.state.inbox_store
+    slot = store.get(token)
+    if slot is None:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/domain_error.html",
+            status_code=404,
+            context={
+                "error_title": "Test address expired",
+                "error_message": (
+                    "Temporary test addresses expire automatically after 15 minutes. "
+                    "Create a new test address to send another message."
+                ),
+                "suggested_domain": None,
+            },
+        )
+
+    if slot.analysis is not None:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/email_report.html",
+            context={
+                "token": slot.token,
+                "address": slot.address,
+                "report": slot.analysis,
+                "plain_text_report": render_email_report_text(slot.analysis),
+            },
+        )
+
+    settings = request.app.state.settings
+    mins = max(1, (slot.seconds_remaining(store.now()) + 59) // 60)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/inbox_waiting.html",
+        context={
+            "slot": slot,
+            "minutes_remaining": mins,
+            "is_local_inbox": settings.is_local_inbox_domain,
+            "inbox_port": settings.smtp_inbox_port,
         },
     )

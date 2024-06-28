@@ -15,9 +15,14 @@ services:
       - unbound
     ports:
       - "127.0.0.1:${APP_PORT:-8085}:8000"
+      - "127.0.0.1:2525:2525"
     environment:
       DNS_NAMESERVER: unbound
       DNS_TIMEOUT_SECONDS: "3.0"
+      SMTP_INBOX_ENABLED: "true"
+      SMTP_INBOX_HOST: "0.0.0.0"
+      SMTP_INBOX_PORT: "2525"
+      TEST_INBOX_DOMAIN: "test.localhost"
     networks:
       - delivercheck
 

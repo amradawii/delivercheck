@@ -37,49 +37,40 @@ class DomainCheckSession:
     display_domain: str
     custom_selector: str | None
     created_at: float
-    mx_task: asyncio.Task[MXCheckResult]
-    dns_host_task: asyncio.Task[DNSHost | None]
-    spf_task: asyncio.Task[SPFCheckResult]
-    dmarc_task: asyncio.Task[DMARCCheckResult]
-    dkim_task: asyncio.Task[DKIMCheckResult]
-    blocklists_task: asyncio.Task[BlocklistCheckResult]
-    extras_task: asyncio.Task[ExtrasCheckResult]
-    report_task: asyncio.Task[DomainReport]
-    providers: list[MailProvider] = field(default_factory=list)
+    _resolver: DNSResolver
+    _settings: Settings
+    _policy_fetcher: PolicyFetcher | None
+    _loop: asyncio.AbstractEventLoop | None = field(default=None, init=False, repr=False)
+    _mx_task: asyncio.Task[MXCheckResult] | None = field(default=None, init=False, repr=False)
+    _dns_host_task: asyncio.Task[DNSHost | None] | None = field(
+        default=None, init=False, repr=False
+    )
+    _spf_task: asyncio.Task[SPFCheckResult] | None = field(default=None, init=False, repr=False)
+    _dmarc_task: asyncio.Task[DMARCCheckResult] | None = field(default=None, init=False, repr=False)
+    _dkim_task: asyncio.Task[DKIMCheckResult] | None = field(default=None, init=False, repr=False)
+    _blocklists_task: asyncio.Task[BlocklistCheckResult] | None = field(
+        default=None, init=False, repr=False
+    )
+    _extras_task: asyncio.Task[ExtrasCheckResult] | None = field(
+        default=None, init=False, repr=False
+    )
+    _report_task: asyncio.Task[DomainReport] | None = field(default=None, init=False, repr=False)
 
+    def _ensure_tasks(self) -> None:
+        current_loop = asyncio.get_running_loop()
+        if (
+            self._loop is current_loop
+            and self._mx_task is not None
+            and not self._mx_task.cancelled()
+        ):
+            return
 
-class DomainSessionStore:
-    """In-memory store holding active streaming domain checks so sections share DNS results."""
-
-    def __init__(self, ttl_seconds: float = SESSION_TTL_SECONDS) -> None:
-        self._ttl_seconds = ttl_seconds
-        self._sessions: dict[str, DomainCheckSession] = {}
-
-    def _prune(self) -> None:
-        now = time.monotonic()
-        expired = [
-            tok for tok, sess in self._sessions.items() if now - sess.created_at > self._ttl_seconds
-        ]
-        for tok in expired:
-            self._sessions.pop(tok, None)
-        while len(self._sessions) >= MAX_SESSIONS:
-            oldest_key = next(iter(self._sessions))
-            self._sessions.pop(oldest_key, None)
-
-    def start_session(
-        self,
-        *,
-        domain: str,
-        display_domain: str,
-        custom_selector: str | None,
-        resolver: DNSResolver,
-        settings: Settings,
-        policy_fetcher: PolicyFetcher | None = None,
-    ) -> DomainCheckSession:
-        self._prune()
-        token = secrets.token_urlsafe(12)
-        norm_domain = normalize_dns_name(domain)
-        scoped = CachedDNSResolver(resolver)
+        self._loop = current_loop
+        norm_domain = normalize_dns_name(self.domain)
+        scoped = CachedDNSResolver(self._resolver)
+        settings = self._settings
+        policy_fetcher = self._policy_fetcher
+        custom_selector = self.custom_selector
 
         mx_task = asyncio.create_task(check_mx(norm_domain, scoped))
         dns_host_task = asyncio.create_task(detect_dns_host_for_domain(norm_domain, scoped))
@@ -272,23 +263,105 @@ class DomainSessionStore:
                 findings=sorted_findings,
             )
 
-        report_task = asyncio.create_task(_assemble_report())
+        self._mx_task = mx_task
+        self._dns_host_task = dns_host_task
+        self._spf_task = spf_task
+        self._dmarc_task = dmarc_task
+        self._dkim_task = dkim_task
+        self._blocklists_task = blocklists_task
+        self._extras_task = extras_task
+        self._report_task = asyncio.create_task(_assemble_report())
 
+    @property
+    def mx_task(self) -> asyncio.Task[MXCheckResult]:
+        self._ensure_tasks()
+        assert self._mx_task is not None
+        return self._mx_task
+
+    @property
+    def dns_host_task(self) -> asyncio.Task[DNSHost | None]:
+        self._ensure_tasks()
+        assert self._dns_host_task is not None
+        return self._dns_host_task
+
+    @property
+    def spf_task(self) -> asyncio.Task[SPFCheckResult]:
+        self._ensure_tasks()
+        assert self._spf_task is not None
+        return self._spf_task
+
+    @property
+    def dmarc_task(self) -> asyncio.Task[DMARCCheckResult]:
+        self._ensure_tasks()
+        assert self._dmarc_task is not None
+        return self._dmarc_task
+
+    @property
+    def dkim_task(self) -> asyncio.Task[DKIMCheckResult]:
+        self._ensure_tasks()
+        assert self._dkim_task is not None
+        return self._dkim_task
+
+    @property
+    def blocklists_task(self) -> asyncio.Task[BlocklistCheckResult]:
+        self._ensure_tasks()
+        assert self._blocklists_task is not None
+        return self._blocklists_task
+
+    @property
+    def extras_task(self) -> asyncio.Task[ExtrasCheckResult]:
+        self._ensure_tasks()
+        assert self._extras_task is not None
+        return self._extras_task
+
+    @property
+    def report_task(self) -> asyncio.Task[DomainReport]:
+        self._ensure_tasks()
+        assert self._report_task is not None
+        return self._report_task
+
+
+class DomainSessionStore:
+    """In-memory store holding active streaming domain checks so sections share DNS results."""
+
+    def __init__(self, ttl_seconds: float = SESSION_TTL_SECONDS) -> None:
+        self._ttl_seconds = ttl_seconds
+        self._sessions: dict[str, DomainCheckSession] = {}
+
+    def _prune(self) -> None:
+        now = time.monotonic()
+        expired = [
+            tok for tok, sess in self._sessions.items() if now - sess.created_at > self._ttl_seconds
+        ]
+        for tok in expired:
+            self._sessions.pop(tok, None)
+        while len(self._sessions) >= MAX_SESSIONS:
+            oldest_key = next(iter(self._sessions))
+            self._sessions.pop(oldest_key, None)
+
+    def start_session(
+        self,
+        *,
+        domain: str,
+        display_domain: str,
+        custom_selector: str | None,
+        resolver: DNSResolver,
+        settings: Settings,
+        policy_fetcher: PolicyFetcher | None = None,
+    ) -> DomainCheckSession:
+        self._prune()
+        token = secrets.token_urlsafe(12)
         session = DomainCheckSession(
             token=token,
-            domain=norm_domain,
+            domain=normalize_dns_name(domain),
             display_domain=display_domain,
             custom_selector=custom_selector,
             created_at=time.monotonic(),
-            mx_task=mx_task,
-            dns_host_task=dns_host_task,
-            spf_task=spf_task,
-            dmarc_task=dmarc_task,
-            dkim_task=dkim_task,
-            blocklists_task=blocklists_task,
-            extras_task=extras_task,
-            report_task=report_task,
+            _resolver=resolver,
+            _settings=settings,
+            _policy_fetcher=policy_fetcher,
         )
+        session._ensure_tasks()
         self._sessions[token] = session
         return session
 
