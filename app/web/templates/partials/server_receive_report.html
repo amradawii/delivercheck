@@ -169,4 +169,105 @@
     {% endif %}
   </section>
   {% endfor %}
+
+  <section class="rounded-lg border border-zinc-200 p-6">
+    <details>
+      <summary class="cursor-pointer text-base font-semibold text-zinc-950">
+        Also test sending (optional)
+      </summary>
+      <p class="mt-2 text-sm text-zinc-600">
+        Test outgoing SMTP login, TLS certificate, and send one test message to DeliverCheck's temporary test inbox. Credentials are used once in memory, never logged or stored, and masked in the transcript.
+      </p>
+      {% if report.provider and report.provider.smtp_auth_hint %}
+      <p class="mt-2 text-xs text-zinc-600 border-l-2 border-zinc-300 pl-3">
+        {{ report.provider.name }}: {{ report.provider.smtp_auth_hint }}
+      </p>
+      {% endif %}
+
+      <form
+        hx-post="/server/send"
+        hx-target="#send-test-report"
+        hx-swap="innerHTML"
+        hx-indicator="#send-loading"
+        class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"
+      >
+        <input type="hidden" name="from_email" value="{{ report.email }}">
+
+        <div>
+          <label for="send-smtp-host" class="block text-xs font-medium text-zinc-700">SMTP host</label>
+          <input
+            id="send-smtp-host"
+            name="smtp_host"
+            type="text"
+            value="{{ report.suggested_smtp_host or '' }}"
+            placeholder="smtp.gmail.com"
+            autocomplete="off"
+            required
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm font-mono text-zinc-950 focus:border-zinc-950 focus:outline-none"
+          >
+        </div>
+
+        <div>
+          <label for="send-port-mode" class="block text-xs font-medium text-zinc-700">Port &amp; security</label>
+          <div class="mt-1 flex gap-2">
+            <select
+              id="send-port-mode"
+              name="port"
+              class="w-1/2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 focus:border-zinc-950 focus:outline-none"
+            >
+              <option value="587" {% if report.suggested_smtp_port == 587 %}selected{% endif %}>587</option>
+              <option value="465" {% if report.suggested_smtp_port == 465 %}selected{% endif %}>465</option>
+            </select>
+            <select
+              aria-label="TLS security mode"
+              name="security_mode"
+              class="w-1/2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 focus:border-zinc-950 focus:outline-none"
+            >
+              <option value="starttls" {% if report.suggested_smtp_port == 587 %}selected{% endif %}>STARTTLS</option>
+              <option value="implicit_tls" {% if report.suggested_smtp_port == 465 %}selected{% endif %}>Implicit TLS</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="send-username" class="block text-xs font-medium text-zinc-700">Username</label>
+          <input
+            id="send-username"
+            name="username"
+            type="text"
+            value="{{ report.email }}"
+            autocomplete="off"
+            required
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-950 focus:border-zinc-950 focus:outline-none"
+          >
+        </div>
+
+        <div>
+          <label for="send-password" class="block text-xs font-medium text-zinc-700">Password or App Password</label>
+          <input
+            id="send-password"
+            name="password"
+            type="password"
+            autocomplete="off"
+            required
+            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-950 focus:border-zinc-950 focus:outline-none"
+          >
+        </div>
+
+        <div class="sm:col-span-2 flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            class="rounded-lg bg-zinc-950 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2"
+          >
+            Test sending
+          </button>
+          <span id="send-loading" class="htmx-indicator text-xs text-zinc-500">
+            Connecting and authenticating over TLS...
+          </span>
+        </div>
+      </form>
+
+      <div id="send-test-report" class="mt-6" aria-live="polite"></div>
+    </details>
+  </section>
 </div>

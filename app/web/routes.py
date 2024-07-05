@@ -13,6 +13,7 @@ from app.checks.fixes import suggest_dmarc_fix, suggest_spf_fix
 from app.inbox.analyze import render_email_report_text
 from app.report.plain_text import render_domain_report_text
 from app.smtp.receive_test import render_receive_report_text, run_receive_test
+from app.smtp.send_test import SecurityMode, render_send_report_text, run_send_test
 from app.web.validation import validate_domain_input, validate_email_input
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
@@ -263,6 +264,115 @@ async def test_mail_server_receive(
         context={
             "report": report,
             "plain_text_report": plain_text,
+        },
+    )
+
+
+@router.post("/server/send", response_class=HTMLResponse)
+async def test_mail_server_send(
+    request: Request,
+    from_email: str = Form(default=""),
+    smtp_host: str = Form(default=""),
+    port: int = Form(default=587),
+    security_mode: str = Form(default="starttls"),
+    username: str = Form(default=""),
+    password: str = Form(default=""),
+) -> HTMLResponse:
+    decision = request.app.state.rate_limiter.check("send", _client_ip(request))
+    if not decision.allowed:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/domain_error.html",
+            status_code=429,
+            context={
+                "error_title": "Too many sending tests from this address",
+                "error_message": (
+                    "Sending tests are strictly rate-limited. Please wait "
+                    f"{decision.retry_after_seconds} seconds and try again."
+                ),
+                "suggested_domain": None,
+            },
+        )
+
+    email_val = validate_email_input(from_email)
+    if not email_val.ok or not email_val.email:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/domain_error.html",
+            status_code=400,
+            context={
+                "error_title": "Check your sender email address",
+                "error_message": email_val.error or "Enter a valid From email address.",
+                "suggested_domain": None,
+            },
+        )
+
+    host_val = validate_domain_input(smtp_host)
+    if not host_val.ok or not host_val.domain:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/domain_error.html",
+            status_code=400,
+            context={
+                "error_title": "Check your SMTP hostname",
+                "error_message": host_val.error or "Enter a valid SMTP server hostname.",
+                "suggested_domain": None,
+            },
+        )
+
+    if not username.strip() or not password:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/domain_error.html",
+            status_code=400,
+            context={
+                "error_title": "Enter SMTP username and password",
+                "error_message": (
+                    "Both username and password are required to test SMTP authentication. "
+                    "Credentials are used once in memory and never stored."
+                ),
+                "suggested_domain": None,
+            },
+        )
+
+    mode: SecurityMode = "implicit_tls" if security_mode == "implicit_tls" else "starttls"
+    store = request.app.state.inbox_store
+    slot = store.create_slot()
+    settings = request.app.state.settings
+
+    send_runner = getattr(request.app.state, "send_test_runner", None) or run_send_test
+    report = await send_runner(
+        from_email=email_val.email,
+        smtp_host=host_val.domain,
+        port=port,
+        security_mode=mode,
+        username=username.strip(),
+        password=password,
+        target_inbox_token=slot.token,
+        target_inbox_address=slot.address,
+        resolver=request.app.state.resolver,
+    )
+    plain_text = render_send_report_text(report)
+    mins = max(1, (slot.seconds_remaining(store.now()) + 59) // 60)
+
+    # Check if the test message already arrived (e.g., fast local loopback relay)
+    current_slot = store.get(slot.token)
+    received_analysis = current_slot.analysis if current_slot else None
+
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/server_send_report.html",
+        context={
+            "report": report,
+            "plain_text_report": plain_text,
+            "slot": slot,
+            "minutes_remaining": mins,
+            "is_local_inbox": settings.is_local_inbox_domain,
+            "inbox_port": settings.smtp_inbox_port,
+            "received_analysis": received_analysis,
+            "received_plain_text": (
+                render_email_report_text(received_analysis) if received_analysis else None
+            ),
         },
     )
 

@@ -27,11 +27,11 @@
     <dl class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm border-t border-zinc-200 pt-4">
       <div>
         <dt class="text-xs text-zinc-500">From</dt>
-        <dd class="mt-0.5 font-mono text-xs text-zinc-950 break-all">{{ report.from_header or "(missing)" }}</dd>
+        <dd class="mt-0.5 font-mono text-xs text-zinc-950 break-words">{{ report.from_header or "(missing)" }}</dd>
       </div>
       <div>
         <dt class="text-xs text-zinc-500">Return-Path (MAIL FROM)</dt>
-        <dd class="mt-0.5 font-mono text-xs text-zinc-950 break-all">{{ report.mail_from or "(empty)" }}</dd>
+        <dd class="mt-0.5 font-mono text-xs text-zinc-950 break-words">{{ report.mail_from or "(empty)" }}</dd>
       </div>
       <div>
         <dt class="text-xs text-zinc-500">Connecting IP &amp; PTR</dt>
