@@ -218,8 +218,9 @@
               <option value="587" {% if report.suggested_smtp_port == 587 %}selected{% endif %}>587</option>
               <option value="465" {% if report.suggested_smtp_port == 465 %}selected{% endif %}>465</option>
             </select>
+            <label for="send-security-mode" class="sr-only">TLS security mode</label>
             <select
-              aria-label="TLS security mode"
+              id="send-security-mode"
               name="security_mode"
               class="w-1/2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 focus:border-zinc-950 focus:outline-none"
             >
@@ -261,7 +262,7 @@
           >
             Test sending
           </button>
-          <span id="send-loading" class="htmx-indicator text-xs text-zinc-500">
+          <span id="send-loading" role="status" aria-live="polite" class="htmx-indicator text-xs text-zinc-500">
             Connecting and authenticating over TLS...
           </span>
         </div>

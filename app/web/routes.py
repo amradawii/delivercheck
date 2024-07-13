@@ -255,7 +255,22 @@ async def test_mail_server_receive(
         )
 
     receive_runner = getattr(request.app.state, "receive_test_runner", None) or run_receive_test
-    report = await receive_runner(validation.email, request.app.state.resolver)
+    try:
+        report = await receive_runner(validation.email, request.app.state.resolver)
+    except Exception:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/domain_error.html",
+            status_code=504,
+            context={
+                "error_title": "Mail server test could not complete",
+                "error_message": (
+                    "The server connection timed out or hit an unexpected error. "
+                    "Please try again in a moment."
+                ),
+                "suggested_domain": None,
+            },
+        )
     plain_text = render_receive_report_text(report)
 
     return templates.TemplateResponse(
@@ -341,17 +356,32 @@ async def test_mail_server_send(
     settings = request.app.state.settings
 
     send_runner = getattr(request.app.state, "send_test_runner", None) or run_send_test
-    report = await send_runner(
-        from_email=email_val.email,
-        smtp_host=host_val.domain,
-        port=port,
-        security_mode=mode,
-        username=username.strip(),
-        password=password,
-        target_inbox_token=slot.token,
-        target_inbox_address=slot.address,
-        resolver=request.app.state.resolver,
-    )
+    try:
+        report = await send_runner(
+            from_email=email_val.email,
+            smtp_host=host_val.domain,
+            port=port,
+            security_mode=mode,
+            username=username.strip(),
+            password=password,
+            target_inbox_token=slot.token,
+            target_inbox_address=slot.address,
+            resolver=request.app.state.resolver,
+        )
+    except Exception:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/domain_error.html",
+            status_code=504,
+            context={
+                "error_title": "Sending test could not complete",
+                "error_message": (
+                    "The outgoing SMTP test timed out or hit an unexpected error. "
+                    "Credentials were discarded. Verify your host and port and try again."
+                ),
+                "suggested_domain": None,
+            },
+        )
     plain_text = render_send_report_text(report)
     mins = max(1, (slot.seconds_remaining(store.now()) + 59) // 60)
 

@@ -217,6 +217,7 @@ async def analyze_received_email(
     tls_cipher: str | None,
     resolver: DNSResolver,
     received_at: datetime | None = None,
+    check_timeout: float = 10.0,
 ) -> EmailAnalysisReport:
     """Analyze a received message without trusting any sender-supplied auth headers."""
     scoped = CachedDNSResolver(resolver)
@@ -283,30 +284,51 @@ async def analyze_received_email(
         normalize_dns_name(helo_hostname) if "." in helo_hostname else None
     )
 
-    async def _run_spf() -> SPFEvalResult | None:
+    async def _run_ptr_safe() -> tuple[str | None, bool]:
+        try:
+            async with asyncio.timeout(check_timeout):
+                return await _check_ptr(peer_ip, scoped)
+        except (TimeoutError, Exception):
+            return None, False
+
+    async def _run_spf_safe() -> SPFEvalResult | None:
         if not spf_domain:
             return None
         try:
-            return await evaluate_spf_for_ip(
-                spf_domain,
-                peer_ip,
-                clean_mail_from or f"postmaster@{spf_domain}",
-                scoped,
-                helo=helo_hostname,
-            )
-        except ValueError:
+            async with asyncio.timeout(check_timeout):
+                return await evaluate_spf_for_ip(
+                    spf_domain,
+                    peer_ip,
+                    clean_mail_from or f"postmaster@{spf_domain}",
+                    scoped,
+                    helo=helo_hostname,
+                )
+        except (ValueError, TimeoutError, Exception):
             return None
 
-    async def _run_dmarc() -> DMARCCheckResult | None:
+    async def _run_dkim_safe() -> tuple[DKIMSignatureReport, ...]:
+        try:
+            async with asyncio.timeout(check_timeout):
+                return await _verify_all_dkim_signatures(
+                    raw_bytes, raw_dkim_headers, from_domain, scoped
+                )
+        except (TimeoutError, Exception):
+            return ()
+
+    async def _run_dmarc_safe() -> DMARCCheckResult | None:
         if not from_domain:
             return None
-        return await check_dmarc(from_domain, scoped)
+        try:
+            async with asyncio.timeout(check_timeout):
+                return await check_dmarc(from_domain, scoped)
+        except (TimeoutError, Exception):
+            return None
 
     ptr_res, spf_res, dkim_reports, dmarc_check = await asyncio.gather(
-        _check_ptr(peer_ip, scoped),
-        _run_spf(),
-        _verify_all_dkim_signatures(raw_bytes, raw_dkim_headers, from_domain, scoped),
-        _run_dmarc(),
+        _run_ptr_safe(),
+        _run_spf_safe(),
+        _run_dkim_safe(),
+        _run_dmarc_safe(),
     )
     ptr_host, fcrdns_valid = ptr_res
 

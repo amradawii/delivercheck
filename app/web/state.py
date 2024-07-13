@@ -7,24 +7,28 @@ import secrets
 import time
 from dataclasses import dataclass, field
 
-from app.checks.blocklists import BlocklistCheckResult, check_blocklists
-from app.checks.dkim import DKIMCheckResult, check_dkim
-from app.checks.dmarc import DMARCCheckResult, check_dmarc
-from app.checks.domain import _as_severity, _extract_single_spf_ips
-from app.checks.extras import ExtrasCheckResult, PolicyFetcher, check_extras
-from app.checks.fixes import suggest_dmarc_fix, suggest_spf_fix
-from app.checks.mx import MXCheckResult, check_mx
-from app.checks.requirements import evaluate_sender_requirements
-from app.checks.spf import SPFCheckResult, check_spf
-from app.config import Settings
-from app.dns.providers import (
-    DNSHost,
-    MailProvider,
-    detect_dns_host_for_domain,
-    detect_providers_from_txt,
+from app.checks.blocklists import BlocklistCheckResult
+from app.checks.dkim import DKIMCheckResult
+from app.checks.dmarc import DMARCCheckResult
+from app.checks.domain import (
+    _extract_single_spf_ips,
+    assemble_domain_report,
+    safe_check_blocklists,
+    safe_check_dkim,
+    safe_check_dmarc,
+    safe_check_extras,
+    safe_check_mx,
+    safe_check_spf,
+    safe_detect_dns_host,
+    safe_query_root_txt,
 )
+from app.checks.extras import ExtrasCheckResult, PolicyFetcher
+from app.checks.mx import MXCheckResult
+from app.checks.spf import SPFCheckResult
+from app.config import Settings
+from app.dns.providers import DNSHost, MailProvider, detect_providers_from_txt
 from app.dns.resolver import CachedDNSResolver, DNSResolver, DNSStatus, normalize_dns_name
-from app.report.models import DomainReport, Finding, build_verdict, sort_findings
+from app.report.models import DomainReport
 
 SESSION_TTL_SECONDS = 180.0
 MAX_SESSIONS = 400
@@ -69,13 +73,20 @@ class DomainCheckSession:
         norm_domain = normalize_dns_name(self.domain)
         scoped = CachedDNSResolver(self._resolver)
         settings = self._settings
+        timeout = settings.check_timeout_seconds
         policy_fetcher = self._policy_fetcher
         custom_selector = self.custom_selector
 
-        mx_task = asyncio.create_task(check_mx(norm_domain, scoped))
-        dns_host_task = asyncio.create_task(detect_dns_host_for_domain(norm_domain, scoped))
-        root_txt_task = asyncio.create_task(scoped.query(norm_domain, "TXT"))
-        dmarc_task = asyncio.create_task(check_dmarc(norm_domain, scoped))
+        mx_task = asyncio.create_task(safe_check_mx(norm_domain, scoped, timeout_seconds=timeout))
+        dns_host_task = asyncio.create_task(
+            safe_detect_dns_host(norm_domain, scoped, timeout_seconds=timeout)
+        )
+        root_txt_task = asyncio.create_task(
+            safe_query_root_txt(norm_domain, scoped, timeout_seconds=timeout)
+        )
+        dmarc_task = asyncio.create_task(
+            safe_check_dmarc(norm_domain, scoped, timeout_seconds=timeout)
+        )
 
         async def _initial_providers() -> list[MailProvider]:
             mx_res, root_txt = await asyncio.gather(mx_task, root_txt_task)
@@ -92,7 +103,12 @@ class DomainCheckSession:
 
         async def _run_spf() -> SPFCheckResult:
             providers = await initial_providers_task
-            return await check_spf(norm_domain, scoped, detected_providers=providers)
+            return await safe_check_spf(
+                norm_domain,
+                scoped,
+                detected_providers=providers,
+                timeout_seconds=timeout,
+            )
 
         spf_task = asyncio.create_task(_run_spf())
 
@@ -108,11 +124,12 @@ class DomainCheckSession:
 
         async def _run_dkim() -> DKIMCheckResult:
             providers = await all_providers_task
-            return await check_dkim(
+            return await safe_check_dkim(
                 norm_domain,
                 scoped,
                 detected_providers=providers,
                 custom_selector=custom_selector,
+                timeout_seconds=timeout,
             )
 
         async def _run_blocklists() -> BlocklistCheckResult:
@@ -121,22 +138,24 @@ class DomainCheckSession:
             for host in mx_res.hosts:
                 ips.extend(host.all_ips)
             ips.extend(_extract_single_spf_ips(spf_res.ip4_networks, spf_res.ip6_networks))
-            return await check_blocklists(
+            return await safe_check_blocklists(
                 norm_domain,
                 scoped,
                 ips=ips,
                 spamhaus_dqs_key=settings.spamhaus_dqs_key,
                 enable_barracuda_brbl=settings.enable_barracuda_brbl,
+                timeout_seconds=timeout,
             )
 
         async def _run_extras() -> ExtrasCheckResult:
             mx_res, dmarc_res = await asyncio.gather(mx_task, dmarc_task)
-            return await check_extras(
+            return await safe_check_extras(
                 norm_domain,
                 scoped,
                 mx_result=mx_res,
                 dmarc_result=dmarc_res,
                 policy_fetcher=policy_fetcher,
+                timeout_seconds=timeout,
             )
 
         dkim_task = asyncio.create_task(_run_dkim())
@@ -152,115 +171,16 @@ class DomainCheckSession:
             bl_res = await blocklists_task
             ex_res = await extras_task
             providers = await all_providers_task
-            full_providers = list(providers)
-            for p in dkim_res.detected_providers:
-                if all(existing.id != p.id for existing in full_providers):
-                    full_providers.append(p)
-
-            mailbox_provider = mx_res.provider
-            sending_providers = tuple(
-                p for p in full_providers if mailbox_provider is None or p.id != mailbox_provider.id
-            )
-            checklist = evaluate_sender_requirements(spf_res, dkim_res, dmarc_res)
-            spf_sug = suggest_spf_fix(spf_res, full_providers)
-            dmarc_sug = suggest_dmarc_fix(dmarc_res)
-
-            findings: list[Finding] = []
-            for mx_i in mx_res.issues:
-                findings.append(
-                    Finding(
-                        section="MX",
-                        severity=_as_severity(mx_i.severity),
-                        title=mx_i.title,
-                        summary=mx_i.detail,
-                        fix=mx_i.fix,
-                        record_value=mx_i.record_value,
-                        record_host="@",
-                    )
-                )
-            for spf_i in spf_res.issues:
-                rec_val = spf_i.record_value
-                if rec_val is None and spf_sug and spf_sug.record and spf_i.severity == "fail":
-                    rec_val = spf_sug.record
-                findings.append(
-                    Finding(
-                        section="SPF",
-                        severity=_as_severity(spf_i.severity),
-                        title=spf_i.title,
-                        summary=spf_i.detail,
-                        fix=spf_i.fix,
-                        record_value=rec_val,
-                        record_host="@",
-                    )
-                )
-            for dkim_i in dkim_res.issues:
-                findings.append(
-                    Finding(
-                        section="DKIM",
-                        severity=_as_severity(dkim_i.severity),
-                        title=dkim_i.title,
-                        summary=dkim_i.detail,
-                        fix=dkim_i.fix,
-                        record_value=dkim_i.record_value,
-                    )
-                )
-            dmarc_host = f"_dmarc.{dmarc_res.record_domain or dmarc_res.organizational_domain}"
-            for dmarc_i in dmarc_res.issues:
-                findings.append(
-                    Finding(
-                        section="DMARC",
-                        severity=_as_severity(dmarc_i.severity),
-                        title=dmarc_i.title,
-                        summary=dmarc_i.detail,
-                        fix=dmarc_i.fix,
-                        record_value=dmarc_i.record_value,
-                        record_host=dmarc_host if dmarc_i.record_value else None,
-                    )
-                )
-            for bl_i in bl_res.issues:
-                findings.append(
-                    Finding(
-                        section="Blocklists",
-                        severity=_as_severity(bl_i.severity),
-                        title=bl_i.title,
-                        summary=bl_i.detail,
-                        fix=bl_i.fix,
-                    )
-                )
-            for ex_i in ex_res.issues:
-                findings.append(
-                    Finding(
-                        section="Extras",
-                        severity=_as_severity(ex_i.severity),
-                        title=ex_i.title,
-                        summary=ex_i.detail,
-                        fix=ex_i.fix,
-                    )
-                )
-
-            sorted_findings = sort_findings(findings)
-            verdict_status, verdict_line = build_verdict(
-                sorted_findings,
-                checklist,
-                is_null_mx=mx_res.is_null_mx,
-            )
-            return DomainReport(
+            return assemble_domain_report(
                 domain=norm_domain,
-                verdict_status=verdict_status,
-                verdict_line=verdict_line,
-                mailbox_provider=mailbox_provider,
-                sending_providers=sending_providers,
+                mx_result=mx_res,
                 dns_host=dns_host,
-                checklist=checklist,
-                mx=mx_res,
-                spf=spf_res,
-                dkim=dkim_res,
-                dmarc=dmarc_res,
-                blocklists=bl_res,
-                extras=ex_res,
-                spf_suggestion=spf_sug,
-                dmarc_suggestion=dmarc_sug,
-                findings=sorted_findings,
+                spf_result=spf_res,
+                dkim_result=dkim_res,
+                dmarc_result=dmarc_res,
+                blocklist_result=bl_res,
+                extras_result=ex_res,
+                detected_providers=providers,
             )
 
         self._mx_task = mx_task
@@ -322,22 +242,19 @@ class DomainCheckSession:
 
 
 class DomainSessionStore:
-    """In-memory store holding active streaming domain checks so sections share DNS results."""
+    """In-memory short-lived store holding parallel domain check tasks per request."""
 
     def __init__(self, ttl_seconds: float = SESSION_TTL_SECONDS) -> None:
-        self._ttl_seconds = ttl_seconds
+        self._ttl = ttl_seconds
         self._sessions: dict[str, DomainCheckSession] = {}
 
-    def _prune(self) -> None:
-        now = time.monotonic()
-        expired = [
-            tok for tok, sess in self._sessions.items() if now - sess.created_at > self._ttl_seconds
-        ]
-        for tok in expired:
-            self._sessions.pop(tok, None)
+    def _prune(self, now: float) -> None:
+        expired = [k for k, sess in self._sessions.items() if now - sess.created_at > self._ttl]
+        for k in expired:
+            self._sessions.pop(k, None)
         while len(self._sessions) >= MAX_SESSIONS:
-            oldest_key = next(iter(self._sessions))
-            self._sessions.pop(oldest_key, None)
+            oldest = next(iter(self._sessions))
+            self._sessions.pop(oldest, None)
 
     def start_session(
         self,
@@ -349,14 +266,16 @@ class DomainSessionStore:
         settings: Settings,
         policy_fetcher: PolicyFetcher | None = None,
     ) -> DomainCheckSession:
-        self._prune()
+        now = time.monotonic()
+        self._prune(now)
+
         token = secrets.token_urlsafe(12)
         session = DomainCheckSession(
             token=token,
-            domain=normalize_dns_name(domain),
+            domain=domain,
             display_domain=display_domain,
             custom_selector=custom_selector,
-            created_at=time.monotonic(),
+            created_at=now,
             _resolver=resolver,
             _settings=settings,
             _policy_fetcher=policy_fetcher,
@@ -366,5 +285,11 @@ class DomainSessionStore:
         return session
 
     def get(self, token: str) -> DomainCheckSession | None:
-        self._prune()
-        return self._sessions.get(token)
+        now = time.monotonic()
+        sess = self._sessions.get(token)
+        if sess is None:
+            return None
+        if now - sess.created_at > self._ttl:
+            self._sessions.pop(token, None)
+            return None
+        return sess

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import email.utils
 import secrets
@@ -165,6 +166,7 @@ async def run_send_test(
     ehlo_hostname: str = "delivercheck.local",
     connect_timeout: float = 8.0,
     command_timeout: float = 10.0,
+    total_timeout: float = 30.0,
     cafile: str | None = None,
     allow_private_for_tests: bool = False,
 ) -> SendTestReport:
@@ -173,6 +175,89 @@ async def run_send_test(
     Credentials are used once in memory, never logged or stored, never sent over unverified TLS,
     and masked as '****' in transcripts.
     """
+    clean_host = smtp_host.strip().rstrip(".").lower()
+    try:
+        async with asyncio.timeout(total_timeout):
+            return await _run_send_test_core(
+                from_email=from_email,
+                smtp_host=clean_host,
+                port=port,
+                security_mode=security_mode,
+                username=username,
+                password=password,
+                target_inbox_token=target_inbox_token,
+                target_inbox_address=target_inbox_address,
+                resolver=resolver,
+                ehlo_hostname=ehlo_hostname,
+                connect_timeout=connect_timeout,
+                command_timeout=command_timeout,
+                cafile=cafile,
+                allow_private_for_tests=allow_private_for_tests,
+            )
+    except TimeoutError:
+        return SendTestReport(
+            from_email=from_email,
+            smtp_host=clean_host,
+            port=port,
+            security_mode=security_mode,
+            ready_to_send=False,
+            verdict_label="No",
+            verdict_summary=(
+                f"Sending test to {clean_host}:{port} timed out after {total_timeout:.0f} seconds."
+            ),
+            issues=(
+                SendIssue(
+                    severity="fail",
+                    title=f"SMTP submission test timed out on {clean_host}:{port}",
+                    detail=(
+                        f"{clean_host}:{port} did not complete TLS login and submission within "
+                        f"{total_timeout:.0f} seconds."
+                    ),
+                    fix=(
+                        "Verify the SMTP hostname, port (587 or 465), and that outbound "
+                        "connections to this server are not firewalled."
+                    ),
+                ),
+            ),
+        )
+    except Exception as exc:
+        safe_err = _scrub_secrets(str(exc), username=username, password=password)
+        return SendTestReport(
+            from_email=from_email,
+            smtp_host=clean_host,
+            port=port,
+            security_mode=security_mode,
+            ready_to_send=False,
+            verdict_label="No",
+            verdict_summary=f"Could not complete sending test to {clean_host}:{port}.",
+            issues=(
+                SendIssue(
+                    severity="fail",
+                    title=f"SMTP submission test failed on {clean_host}:{port}",
+                    detail=f"An unexpected error interrupted submission ({safe_err}).",
+                    fix="Verify your SMTP host, port, security mode, and try again.",
+                ),
+            ),
+        )
+
+
+async def _run_send_test_core(
+    *,
+    from_email: str,
+    smtp_host: str,
+    port: int,
+    security_mode: SecurityMode,
+    username: str,
+    password: str,
+    target_inbox_token: str,
+    target_inbox_address: str,
+    resolver: DNSResolver,
+    ehlo_hostname: str = "delivercheck.local",
+    connect_timeout: float = 8.0,
+    command_timeout: float = 10.0,
+    cafile: str | None = None,
+    allow_private_for_tests: bool = False,
+) -> SendTestReport:
     issues: list[SendIssue] = []
     clean_host = smtp_host.strip().rstrip(".").lower()
 

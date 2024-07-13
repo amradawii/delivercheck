@@ -4,7 +4,7 @@
 {% if active_tab == "domain" %}
 <section aria-labelledby="domain-check-heading" class="rounded-lg border border-zinc-200 p-6">
   <h1 id="domain-check-heading" class="text-lg font-semibold text-zinc-950">Check a domain</h1>
-  <p class="mt-1 text-zinc-600">
+  <p id="domain-check-hint" class="mt-1 text-zinc-600">
     Inspect MX, SPF, DKIM, DMARC, blocklists, and Gmail/Yahoo 2024 sender requirements in parallel.
   </p>
 
@@ -14,7 +14,7 @@
       <div class="flex-1">
         <label for="domain-input" class="sr-only">Domain name</label>
         <input id="domain-input" name="domain" type="text" value="{{ prefill_domain }}" placeholder="yourstore.com"
-          autocomplete="off" spellcheck="false" required
+          aria-describedby="domain-check-hint" autocomplete="off" spellcheck="false" required
           class="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-zinc-950 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none">
       </div>
       <button type="submit"
@@ -30,7 +30,7 @@
       <input id="selector-input" name="selector" type="text" placeholder="e.g. google, selector1, s1" autocomplete="off"
         spellcheck="false"
         class="w-full sm:w-64 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none">
-      <span id="domain-loading" class="htmx-indicator text-sm text-zinc-500">
+      <span id="domain-loading" role="status" aria-live="polite" class="htmx-indicator text-sm text-zinc-500">
         Starting DNS checks...
       </span>
     </div>
@@ -42,7 +42,7 @@
 {% elif active_tab == "server" %}
 <section aria-labelledby="server-test-heading" class="rounded-lg border border-zinc-200 p-6">
   <h1 id="server-test-heading" class="text-lg font-semibold text-zinc-950">Test a mail server</h1>
-  <p class="mt-1 text-zinc-600">
+  <p id="server-test-hint" class="mt-1 text-zinc-600">
     Enter an email address to connect to its receiving mail servers and test STARTTLS, certificate validity, reverse
     DNS, open relay safety, and mailbox acceptance.
   </p>
@@ -52,8 +52,8 @@
     <div class="flex flex-col gap-3 sm:flex-row">
       <div class="flex-1">
         <label for="server-email-input" class="sr-only">Email address to test</label>
-        <input id="server-email-input" name="email" type="email" placeholder="info@yourstore.com" autocomplete="off"
-          spellcheck="false" required
+        <input id="server-email-input" name="email" type="email" placeholder="info@yourstore.com"
+          aria-describedby="server-test-hint" autocomplete="off" spellcheck="false" required
           class="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-zinc-950 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none">
       </div>
       <button type="submit"
@@ -64,7 +64,7 @@
 
     <div class="flex items-center justify-between text-xs text-zinc-500">
       <span>Never sends email body data (DATA) to third-party servers.</span>
-      <span id="server-loading" class="htmx-indicator text-zinc-600">
+      <span id="server-loading" role="status" aria-live="polite" class="htmx-indicator text-zinc-600">
         Connecting to mail servers...
       </span>
     </div>

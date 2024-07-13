@@ -90,11 +90,17 @@ async def _inspect_mx_host(record: MXRecord, resolver: DNSResolver) -> MXHostInf
             is_bare_ip=True,
         )
 
-    cname_resp, a_resp, aaaa_resp = await asyncio.gather(
-        resolver.query(record.exchange, "CNAME"),
-        resolver.query(record.exchange, "A"),
-        resolver.query(record.exchange, "AAAA"),
-    )
+    try:
+        cname_resp, a_resp, aaaa_resp = await asyncio.gather(
+            resolver.query(record.exchange, "CNAME"),
+            resolver.query(record.exchange, "A"),
+            resolver.query(record.exchange, "AAAA"),
+        )
+    except Exception:
+        return MXHostInfo(
+            priority=record.priority,
+            exchange=record.exchange,
+        )
 
     is_cname = cname_resp.status == DNSStatus.OK and bool(cname_resp.records)
     cname_target: str | None = None

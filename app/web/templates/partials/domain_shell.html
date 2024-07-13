@@ -1,6 +1,7 @@
 <div class="space-y-6" data-domain-report-token="{{ session.token }}">
   <div
     id="section-summary"
+    role="status"
     hx-get="/domain/sections/{{ session.token }}/summary"
     hx-trigger="load"
     hx-swap="outerHTML"
@@ -12,6 +13,7 @@
   <div class="grid gap-6">
     <div
       id="section-mx"
+      role="status"
       hx-get="/domain/sections/{{ session.token }}/mx"
       hx-trigger="load"
       hx-swap="outerHTML"
@@ -22,6 +24,7 @@
 
     <div
       id="section-spf"
+      role="status"
       hx-get="/domain/sections/{{ session.token }}/spf"
       hx-trigger="load"
       hx-swap="outerHTML"
@@ -32,6 +35,7 @@
 
     <div
       id="section-dkim"
+      role="status"
       hx-get="/domain/sections/{{ session.token }}/dkim"
       hx-trigger="load"
       hx-swap="outerHTML"
@@ -42,6 +46,7 @@
 
     <div
       id="section-dmarc"
+      role="status"
       hx-get="/domain/sections/{{ session.token }}/dmarc"
       hx-trigger="load"
       hx-swap="outerHTML"
@@ -52,6 +57,7 @@
 
     <div
       id="section-blocklists"
+      role="status"
       hx-get="/domain/sections/{{ session.token }}/blocklists"
       hx-trigger="load"
       hx-swap="outerHTML"
@@ -62,6 +68,7 @@
 
     <div
       id="section-extras"
+      role="status"
       hx-get="/domain/sections/{{ session.token }}/extras"
       hx-trigger="load"
       hx-swap="outerHTML"

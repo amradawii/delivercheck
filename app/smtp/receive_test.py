@@ -685,6 +685,81 @@ async def test_mx_host_receive(
     )
 
 
+async def _safe_test_mx_host_receive(
+    *,
+    mx_host: str,
+    priority: int,
+    target_email: str,
+    domain: str,
+    resolver: DNSResolver,
+    port: int,
+    probe_from: str,
+    ehlo_hostname: str,
+    connect_timeout: float,
+    command_timeout: float,
+    slow_banner_ms: float,
+    host_timeout: float,
+    cafile: str | None,
+    allow_private_for_tests: bool,
+) -> MXReceiveResult:
+    try:
+        async with asyncio.timeout(host_timeout):
+            return await test_mx_host_receive(
+                mx_host=mx_host,
+                priority=priority,
+                target_email=target_email,
+                domain=domain,
+                resolver=resolver,
+                port=port,
+                probe_from=probe_from,
+                ehlo_hostname=ehlo_hostname,
+                connect_timeout=connect_timeout,
+                command_timeout=command_timeout,
+                slow_banner_ms=slow_banner_ms,
+                cafile=cafile,
+                allow_private_for_tests=allow_private_for_tests,
+            )
+    except TimeoutError:
+        return MXReceiveResult(
+            mx_host=mx_host,
+            priority=priority,
+            reachable=False,
+            error="Timed out",
+            issues=(
+                ReceiveIssue(
+                    severity="fail",
+                    title=f"Mail server check for {mx_host} timed out",
+                    detail=(
+                        f"Testing {mx_host} on port {port} exceeded {host_timeout:.0f} seconds "
+                        "before completing."
+                    ),
+                    fix=(
+                        f"Check that {mx_host} responds promptly on port {port} and is not "
+                        "tarpitting or dropping connections."
+                    ),
+                ),
+            ),
+        )
+    except Exception:
+        return MXReceiveResult(
+            mx_host=mx_host,
+            priority=priority,
+            reachable=False,
+            error="Unexpected error",
+            issues=(
+                ReceiveIssue(
+                    severity="fail",
+                    title=f"Could not complete test for {mx_host}",
+                    detail=(
+                        f"An unexpected error interrupted testing {mx_host}, while any other "
+                        "mail servers still completed."
+                    ),
+                    fix="Run the mail server test again shortly.",
+                ),
+            ),
+        )
+
+
 async def run_receive_test(
     email_address: str,
     resolver: DNSResolver,
@@ -694,6 +769,8 @@ async def run_receive_test(
     ehlo_hostname: str = "delivercheck.local",
     connect_timeout: float = 8.0,
     command_timeout: float = 8.0,
+    host_timeout: float = 25.0,
+    dns_timeout: float = 10.0,
     slow_banner_ms: float = SLOW_BANNER_DEFAULT_MS,
     cafile: str | None = None,
     allow_private_for_tests: bool = False,
@@ -704,7 +781,27 @@ async def run_receive_test(
     norm_domain = normalize_dns_name(raw_domain)
     norm_email = f"{local_part}@{norm_domain}"
 
-    mx_result = await check_mx(norm_domain, resolver)
+    try:
+        async with asyncio.timeout(dns_timeout):
+            mx_result = await check_mx(norm_domain, resolver)
+    except (TimeoutError, Exception):
+        issue = ReceiveIssue(
+            severity="fail",
+            title="Could not look up MX records",
+            detail=(
+                f"DNS lookup for {norm_domain} MX records did not complete within "
+                f"{dns_timeout:.0f} seconds."
+            ),
+            fix="Try again in a moment or verify the domain's authoritative DNS servers.",
+        )
+        return ReceiveTestReport(
+            email=norm_email,
+            domain=norm_domain,
+            verdict="not_ready",
+            verdict_label="No",
+            verdict_summary=f"Could not resolve MX records for {norm_domain}.",
+            issues=(issue,),
+        )
     provider = mx_result.provider
     suggested_smtp = mx_result.suggested_smtp_host
     suggested_port = provider.smtp_port if provider else 587
@@ -754,7 +851,7 @@ async def run_receive_test(
     host_results = tuple(
         await asyncio.gather(
             *(
-                test_mx_host_receive(
+                _safe_test_mx_host_receive(
                     mx_host=h.exchange,
                     priority=h.priority,
                     target_email=norm_email,
@@ -766,6 +863,7 @@ async def run_receive_test(
                     connect_timeout=connect_timeout,
                     command_timeout=command_timeout,
                     slow_banner_ms=slow_banner_ms,
+                    host_timeout=host_timeout,
                     cafile=cafile,
                     allow_private_for_tests=allow_private_for_tests,
                 )
