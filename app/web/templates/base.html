@@ -1,51 +1,63 @@
+{% from "partials/icons.html" import icon, logo_mark %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ page_title | default("DeliverCheck") }}</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2309090b'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230e7490'/%3E%3Cpath d='M6 10.5A2 2 0 0 1 8 8.5h16a2 2 0 0 1 2 2v5.5M6 10.5v9A2 2 0 0 0 8 21.5h7.5M6.5 10l9.5 6.2 9.5-6.2M18.5 21.5l2.2 2.2 4.8-5' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/css/app.css">
   <script src="/static/vendor/htmx.min.js" defer></script>
   <script src="/static/js/app.js" defer></script>
 </head>
-<body class="bg-white text-zinc-900 min-h-screen">
+<body class="bg-[#f6f8fa] text-slate-800 min-h-screen">
   <a
     href="#main-content"
-    class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-zinc-950 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2"
+    class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-[#0e7490] focus:px-4 focus:py-2.5 focus:text-sm focus:font-medium focus:text-white focus:outline-none focus:ring-2 focus:ring-[#0e7490] focus:ring-offset-2"
   >
     Skip to main content
   </a>
   <div id="sr-announcer" class="sr-only" role="status" aria-live="polite"></div>
 
-  <div class="mx-auto max-w-5xl px-6 py-8">
-    <header class="pb-6 border-b border-zinc-200">
-      <a href="/" class="text-xl font-semibold tracking-tight text-zinc-950 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2">DeliverCheck</a>
-      <p class="mt-1 text-zinc-600">
-        Check if your email is ready to send and receive, and how to fix it.
-      </p>
+  <div class="mx-auto max-w-6xl px-5 sm:px-8 py-8 sm:py-10">
+    <header class="pb-0 border-b border-[#e5e7eb]">
+      <div class="flex flex-col gap-1.5">
+        <a
+          href="/"
+          class="inline-flex w-fit items-center gap-2.5 text-[28px] leading-tight font-semibold tracking-tight text-slate-900 rounded-md transition-colors duration-150 hover:text-[#0e7490] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7490] focus-visible:ring-offset-2"
+        >
+          {{ logo_mark(30, "text-[#0e7490]") }}
+          <span>DeliverCheck</span>
+        </a>
+        <p class="text-[16px] text-slate-600">
+          Check if your email is ready to send and receive, and how to fix it.
+        </p>
+      </div>
 
-      <nav aria-label="Diagnostic tools" class="mt-6 flex flex-wrap gap-6 border-b border-zinc-200 -mb-6">
+      <nav aria-label="Diagnostic tools" class="mt-7 flex gap-x-6 sm:gap-x-8 overflow-x-auto -mb-px">
         <a
           href="/?tab=domain"
-          class="pb-3 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 {{ 'border-zinc-950 text-zinc-950' if active_tab == 'domain' else 'border-transparent text-zinc-500 hover:text-zinc-900' }}"
+          class="inline-flex shrink-0 whitespace-nowrap items-center gap-2 pb-3.5 text-[15px] font-medium border-b-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7490] focus-visible:ring-offset-2 {{ 'border-[#0e7490] text-[#0e7490]' if active_tab == 'domain' else 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300' }}"
           {% if active_tab == 'domain' %}aria-current="page"{% endif %}
         >
-          Check a domain
+          {{ icon("globe", 19) }}
+          <span>Check a domain</span>
         </a>
         <a
           href="/?tab=server"
-          class="pb-3 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 {{ 'border-zinc-950 text-zinc-950' if active_tab == 'server' else 'border-transparent text-zinc-500 hover:text-zinc-900' }}"
+          class="inline-flex shrink-0 whitespace-nowrap items-center gap-2 pb-3.5 text-[15px] font-medium border-b-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7490] focus-visible:ring-offset-2 {{ 'border-[#0e7490] text-[#0e7490]' if active_tab == 'server' else 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300' }}"
           {% if active_tab == 'server' %}aria-current="page"{% endif %}
         >
-          Test a mail server
+          {{ icon("server", 19) }}
+          <span>Test a mail server</span>
         </a>
         <a
           href="/?tab=email"
-          class="pb-3 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 {{ 'border-zinc-950 text-zinc-950' if active_tab == 'email' else 'border-transparent text-zinc-500 hover:text-zinc-900' }}"
+          class="inline-flex shrink-0 whitespace-nowrap items-center gap-2 pb-3.5 text-[15px] font-medium border-b-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7490] focus-visible:ring-offset-2 {{ 'border-[#0e7490] text-[#0e7490]' if active_tab == 'email' else 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300' }}"
           {% if active_tab == 'email' %}aria-current="page"{% endif %}
         >
-          Send a test email
+          {{ icon("send", 19) }}
+          <span>Send a test email</span>
         </a>
       </nav>
     </header>
@@ -54,7 +66,7 @@
       {% block content %}{% endblock %}
     </main>
 
-    <footer class="mt-12 pt-6 border-t border-zinc-200 text-xs text-zinc-500 flex flex-wrap items-center justify-between gap-2">
+    <footer class="mt-14 pt-6 border-t border-[#e5e7eb] text-[13px] text-slate-600 flex flex-wrap items-center justify-between gap-3">
       <span>DeliverCheck — free email readiness diagnostics. No accounts, no tracking cookies.</span>
       <span>Test emails expire automatically after 15 minutes.</span>
     </footer>

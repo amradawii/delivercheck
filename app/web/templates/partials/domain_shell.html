@@ -1,25 +1,28 @@
-<div class="space-y-6" data-domain-report-token="{{ session.token }}">
+{% from "partials/icons.html" import icon %}
+<div class="space-y-5" data-domain-report-token="{{ session.token }}">
   <div
     id="section-summary"
     role="status"
     hx-get="/domain/sections/{{ session.token }}/summary"
     hx-trigger="load"
     hx-swap="outerHTML"
-    class="rounded-lg border border-zinc-200 p-6 text-sm text-zinc-500"
+    class="dc-card p-6 flex items-center gap-3 text-[15px] text-slate-600"
   >
-    Analyzing <span class="font-mono text-zinc-900">{{ session.display_domain }}</span> and assembling findings...
+    {{ icon("loader", 18, "dc-spin text-[#0e7490]") }}
+    <span>Analyzing <span class="font-mono text-slate-900">{{ session.display_domain }}</span> and assembling findings...</span>
   </div>
 
-  <div class="grid gap-6">
+  <div class="grid gap-4">
     <div
       id="section-mx"
       role="status"
       hx-get="/domain/sections/{{ session.token }}/mx"
       hx-trigger="load"
       hx-swap="outerHTML"
-      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+      class="dc-card p-5 flex items-center gap-3 text-[14px] text-slate-600"
     >
-      Checking MX records...
+      {{ icon("loader", 16, "dc-spin text-[#0e7490]") }}
+      <span>Checking MX records...</span>
     </div>
 
     <div
@@ -28,9 +31,10 @@
       hx-get="/domain/sections/{{ session.token }}/spf"
       hx-trigger="load"
       hx-swap="outerHTML"
-      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+      class="dc-card p-5 flex items-center gap-3 text-[14px] text-slate-600"
     >
-      Checking SPF record and counting DNS lookups...
+      {{ icon("loader", 16, "dc-spin text-[#0e7490]") }}
+      <span>Checking SPF record and counting DNS lookups...</span>
     </div>
 
     <div
@@ -39,9 +43,10 @@
       hx-get="/domain/sections/{{ session.token }}/dkim"
       hx-trigger="load"
       hx-swap="outerHTML"
-      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+      class="dc-card p-5 flex items-center gap-3 text-[14px] text-slate-600"
     >
-      Probing DKIM selectors...
+      {{ icon("loader", 16, "dc-spin text-[#0e7490]") }}
+      <span>Probing DKIM selectors...</span>
     </div>
 
     <div
@@ -50,9 +55,10 @@
       hx-get="/domain/sections/{{ session.token }}/dmarc"
       hx-trigger="load"
       hx-swap="outerHTML"
-      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+      class="dc-card p-5 flex items-center gap-3 text-[14px] text-slate-600"
     >
-      Checking DMARC policy and reporting records...
+      {{ icon("loader", 16, "dc-spin text-[#0e7490]") }}
+      <span>Checking DMARC policy and reporting records...</span>
     </div>
 
     <div
@@ -61,9 +67,10 @@
       hx-get="/domain/sections/{{ session.token }}/blocklists"
       hx-trigger="load"
       hx-swap="outerHTML"
-      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+      class="dc-card p-5 flex items-center gap-3 text-[14px] text-slate-600"
     >
-      Checking domain and mail IP blocklists...
+      {{ icon("loader", 16, "dc-spin text-[#0e7490]") }}
+      <span>Checking domain and mail IP blocklists...</span>
     </div>
 
     <div
@@ -72,9 +79,10 @@
       hx-get="/domain/sections/{{ session.token }}/extras"
       hx-trigger="load"
       hx-swap="outerHTML"
-      class="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-500"
+      class="dc-card p-5 flex items-center gap-3 text-[14px] text-slate-600"
     >
-      Checking MTA-STS, TLS-RPT, and BIMI...
+      {{ icon("loader", 16, "dc-spin text-[#0e7490]") }}
+      <span>Checking MTA-STS, TLS-RPT, and BIMI...</span>
     </div>
   </div>
 </div>

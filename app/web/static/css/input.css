@@ -6,6 +6,11 @@
     sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
+  --color-canvas: #f6f8fa;
+  --color-border: #e5e7eb;
+  --color-accent: #0e7490;
+  --color-accent-hover: #155e75;
+  --color-accent-tint: #ecfeff;
 }
 
 @font-face {
@@ -19,11 +24,16 @@
 @layer base {
   html {
     font-family: var(--font-sans);
-    font-size: 15px;
-    line-height: 1.55;
-    color: #18181b;
-    background-color: #ffffff;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #1e293b;
+    background-color: #f6f8fa;
     -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: #f6f8fa;
+    color: #1e293b;
   }
 
   code,
@@ -32,15 +42,168 @@
   }
 
   button:not(:disabled),
-  [role="button"]:not(:disabled) {
+  [role="button"]:not(:disabled),
+  summary {
     cursor: pointer;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary::marker {
+    content: "";
   }
 }
 
-.status-dot {
-  display: inline-block;
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 9999px;
-  vertical-align: middle;
+.dc-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.dc-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 1.5rem;
+  border-radius: 10px;
+  background-color: #0e7490;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dc-btn-primary:hover {
+  background-color: #155e75;
+}
+
+.dc-btn-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0e7490;
+}
+
+.dc-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0.45rem 0.85rem;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.dc-btn-secondary:hover {
+  background-color: #f6f8fa;
+  border-color: #9ca3af;
+}
+
+.dc-btn-secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0e7490;
+}
+
+.dc-input {
+  min-height: 48px;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  padding: 0.625rem 0.9rem;
+  font-size: 16px;
+  color: #0f172a;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dc-input::placeholder {
+  color: #64748b;
+}
+
+.dc-input:focus {
+  outline: none;
+  border-color: #0e7490;
+  box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.16);
+}
+
+.dc-link {
+  color: #0e7490;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(14, 116, 144, 0.45);
+  transition: color 150ms ease, text-decoration-color 150ms ease;
+}
+
+.dc-link:hover {
+  color: #155e75;
+  text-decoration-color: #155e75;
+}
+
+.dc-link:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0e7490;
+}
+
+details[open] > summary .dc-chevron {
+  transform: rotate(180deg);
+}
+
+.dc-chevron {
+  transition: transform 150ms ease;
+}
+
+@keyframes dc-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dc-fade-in {
+  animation: dc-fade-in 180ms ease-out both;
+}
+
+@keyframes dc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dc-spin {
+  animation: dc-spin 900ms linear infinite;
+}
+
+.htmx-indicator {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

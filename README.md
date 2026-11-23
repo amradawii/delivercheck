@@ -8,6 +8,10 @@ DeliverCheck answers one question for a store or business domain: is your email 
 
 ![Domain readiness report](docs/screenshots/domain-report.png)
 
+### Full domain report with blocking problems and copy-ready fixes
+
+![Domain report with SPF, DKIM, and DMARC problems](docs/screenshots/domain-problems-report.png)
+
 ### Test a mail server (receiving and optional sending)
 
 ![Mail server readiness report](docs/screenshots/server-report.png)
@@ -111,4 +115,4 @@ docker run --rm delivercheck-dev bash -c "ruff check app tests && mypy app tests
 
 ## License
 
-MIT â€” see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Inline UI icons adapted from [Lucide](https://lucide.dev) (ISC License).

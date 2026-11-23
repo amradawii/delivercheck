@@ -39,9 +39,9 @@
     const target = event.detail && event.detail.target;
     if (!target) return;
     target.innerHTML =
-      '<div class="rounded-lg border border-zinc-200 p-5" role="alert">' +
-      '<p class="text-sm font-semibold text-zinc-950">This check could not finish</p>' +
-      '<p class="mt-1 text-sm text-zinc-700">The request timed out or lost connection. Run the check again in a moment.</p>' +
+      '<div class="dc-card border-l-4 border-l-red-600 p-5" role="alert">' +
+      '<p class="text-[16px] font-semibold text-slate-900">This check could not finish</p>' +
+      '<p class="mt-1 text-[14px] text-slate-600">The request timed out or lost connection. Run the check again in a moment.</p>' +
       "</div>";
     announce("This check could not finish. Please try again.");
   }
@@ -78,17 +78,51 @@
         }
       }
       if (!text) return;
+
+      const labelEl = copyBtn.querySelector("[data-copy-label]");
+      const copyIcon = copyBtn.querySelector('[data-copy-icon="copy"]');
+      const checkIcon = copyBtn.querySelector('[data-copy-icon="check"]');
+
       try {
         await writeClipboard(text);
-        const original = copyBtn.getAttribute("data-original-label") || copyBtn.textContent.trim();
+        const original =
+          copyBtn.getAttribute("data-original-label") ||
+          (labelEl ? labelEl.textContent.trim() : copyBtn.textContent.trim());
         copyBtn.setAttribute("data-original-label", original);
-        copyBtn.textContent = "Copied";
+
+        if (labelEl) {
+          labelEl.textContent = "Copied";
+        } else {
+          copyBtn.textContent = "Copied";
+        }
+        if (copyIcon) copyIcon.classList.add("hidden");
+        if (checkIcon) {
+          checkIcon.classList.remove("hidden");
+          checkIcon.classList.add("inline-flex");
+        }
         announce("Copied to clipboard.");
-        window.setTimeout(function () {
-          copyBtn.textContent = original;
-        }, 1600);
+
+        if (copyBtn._copyTimer) {
+          window.clearTimeout(copyBtn._copyTimer);
+        }
+        copyBtn._copyTimer = window.setTimeout(function () {
+          if (labelEl) {
+            labelEl.textContent = original;
+          } else {
+            copyBtn.textContent = original;
+          }
+          if (copyIcon) copyIcon.classList.remove("hidden");
+          if (checkIcon) {
+            checkIcon.classList.add("hidden");
+            checkIcon.classList.remove("inline-flex");
+          }
+        }, 1500);
       } catch (_err) {
-        copyBtn.textContent = "Copy failed";
+        if (labelEl) {
+          labelEl.textContent = "Copy failed";
+        } else {
+          copyBtn.textContent = "Copy failed";
+        }
         announce("Could not copy to clipboard.");
       }
       return;

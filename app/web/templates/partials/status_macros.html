@@ -1,33 +1,77 @@
+{% from "partials/icons.html" import icon %}
+
 {% macro status_text(status, custom_label="") %}
-  {% if status in ("pass", "clean") %}
-    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700">
-      <span class="status-dot bg-emerald-600" aria-hidden="true"></span>
+  {% if status in ("pass", "clean", "ready") %}
+    <span class="inline-flex items-center gap-1.5 text-[14px] font-medium text-emerald-700 whitespace-nowrap">
+      {{ icon("check-circle", 18) }}
       <span>{{ custom_label or ("Clean" if status == "clean" else "Pass") }}</span>
     </span>
   {% elif status in ("warn", "partly") %}
-    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700">
-      <span class="status-dot bg-amber-500" aria-hidden="true"></span>
+    <span class="inline-flex items-center gap-1.5 text-[14px] font-medium text-amber-700 whitespace-nowrap">
+      {{ icon("alert-triangle", 18) }}
       <span>{{ custom_label or "Warning" }}</span>
     </span>
-  {% elif status in ("fail", "listed", "error") %}
-    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-red-700">
-      <span class="status-dot bg-red-600" aria-hidden="true"></span>
+  {% elif status in ("fail", "listed", "error", "not_ready") %}
+    <span class="inline-flex items-center gap-1.5 text-[14px] font-medium text-red-700 whitespace-nowrap">
+      {{ icon("x-circle", 18) }}
       <span>{{ custom_label or ("Listed" if status == "listed" else ("Error" if status == "error" else "Fail")) }}</span>
     </span>
   {% elif status == "needs_test_email" %}
-    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600">
-      <span class="status-dot bg-zinc-400" aria-hidden="true"></span>
+    <span class="inline-flex items-center gap-1.5 text-[14px] font-medium text-slate-600 whitespace-nowrap">
+      {{ icon("help-circle", 18) }}
       <span>{{ custom_label or "Needs a test email" }}</span>
     </span>
   {% elif status == "could_not_check" %}
-    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600">
-      <span class="status-dot bg-zinc-400" aria-hidden="true"></span>
+    <span class="inline-flex items-center gap-1.5 text-[14px] font-medium text-slate-600 whitespace-nowrap">
+      {{ icon("help-circle", 18) }}
       <span>{{ custom_label or "Could not check" }}</span>
     </span>
   {% else %}
-    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600">
-      <span class="status-dot bg-zinc-400" aria-hidden="true"></span>
+    <span class="inline-flex items-center gap-1.5 text-[14px] font-medium text-slate-600 whitespace-nowrap">
+      {{ icon("help-circle", 18) }}
       <span>{{ custom_label or ("Unknown" if status == "unknown" else "Note") }}</span>
     </span>
+  {% endif %}
+{% endmacro %}
+
+{% macro verdict_icon(status) %}
+  {% if status in ("pass", "clean", "ready") %}
+    <span class="text-emerald-700 mt-0.5 shrink-0">{{ icon("check-circle", 28, label="Pass") }}</span>
+  {% elif status in ("warn", "partly") %}
+    <span class="text-amber-700 mt-0.5 shrink-0">{{ icon("alert-triangle", 28, label="Warning") }}</span>
+  {% elif status in ("fail", "listed", "error", "not_ready") %}
+    <span class="text-red-700 mt-0.5 shrink-0">{{ icon("x-circle", 28, label="Fail") }}</span>
+  {% else %}
+    <span class="text-slate-600 mt-0.5 shrink-0">{{ icon("help-circle", 28, label="Info") }}</span>
+  {% endif %}
+{% endmacro %}
+
+{% macro copy_button(label="Copy", copy_text="", copy_target="", class="") %}
+<button
+  type="button"
+  {% if copy_text %}data-copy-text="{{ copy_text }}"{% endif %}
+  {% if copy_target %}data-copy-target="{{ copy_target }}"{% endif %}
+  class="dc-btn-secondary shrink-0 {{ class }}"
+>
+  <span data-copy-icon="copy" class="inline-flex">{{ icon("copy", 16) }}</span>
+  <span data-copy-icon="check" class="hidden text-emerald-700">{{ icon("check", 16) }}</span>
+  <span data-copy-label>{{ label }}</span>
+</button>
+{% endmacro %}
+
+{% macro dns_guide_link(dns_host) %}
+  {% if dns_host %}
+  <p class="mt-2.5 flex flex-wrap items-center gap-1.5 text-[13px] text-slate-600">
+    <span>Where to add it:</span>
+    <a
+      href="{{ dns_host.guide_url }}"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="dc-link inline-flex items-center gap-1 font-medium"
+    >
+      <span>{{ dns_host.name }} DNS guide</span>
+      {{ icon("external-link", 14) }}
+    </a>
+  </p>
   {% endif %}
 {% endmacro %}

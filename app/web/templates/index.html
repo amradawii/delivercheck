@@ -1,37 +1,38 @@
 {% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
 
 {% block content %}
 {% if active_tab == "domain" %}
-<section aria-labelledby="domain-check-heading" class="rounded-lg border border-zinc-200 p-6">
-  <h1 id="domain-check-heading" class="text-lg font-semibold text-zinc-950">Check a domain</h1>
-  <p id="domain-check-hint" class="mt-1 text-zinc-600">
+<section aria-labelledby="domain-check-heading" class="dc-card p-6 sm:p-8">
+  <h1 id="domain-check-heading" class="text-[20px] leading-snug font-semibold text-slate-900">Check a domain</h1>
+  <p id="domain-check-hint" class="mt-1.5 text-[15px] text-slate-600">
     Inspect MX, SPF, DKIM, DMARC, blocklists, and Gmail/Yahoo 2024 sender requirements in parallel.
   </p>
 
   <form hx-post="/domain/check" hx-target="#domain-report" hx-swap="innerHTML" hx-indicator="#domain-loading"
-    class="mt-5 space-y-3">
+    class="mt-6 space-y-4">
     <div class="flex flex-col gap-3 sm:flex-row">
-      <div class="flex-1">
+      <div class="flex-1 min-w-0">
         <label for="domain-input" class="sr-only">Domain name</label>
         <input id="domain-input" name="domain" type="text" value="{{ prefill_domain }}" placeholder="yourstore.com"
           aria-describedby="domain-check-hint" autocomplete="off" spellcheck="false" required
-          class="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-zinc-950 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none">
+          class="dc-input">
       </div>
-      <button type="submit"
-        class="rounded-lg bg-zinc-950 px-6 py-2.5 font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2">
-        Check
+      <button type="submit" class="dc-btn-primary shrink-0 sm:px-7">
+        Check domain
       </button>
     </div>
 
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <label for="selector-input" class="text-sm text-zinc-600">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+      <label for="selector-input" class="text-[14px] font-medium text-slate-700 shrink-0">
         DKIM selector (optional):
       </label>
       <input id="selector-input" name="selector" type="text" placeholder="e.g. google, selector1, s1" autocomplete="off"
         spellcheck="false"
-        class="w-full sm:w-64 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none">
-      <span id="domain-loading" role="status" aria-live="polite" class="htmx-indicator text-sm text-zinc-500">
-        Starting DNS checks...
+        class="w-full sm:w-72 rounded-lg border border-[#d1d5db] bg-white px-3.5 py-2 text-[14px] text-slate-900 placeholder:text-slate-500 transition duration-150 focus:border-[#0e7490] focus:outline-none focus:ring-3 focus:ring-[#0e7490]/15">
+      <span id="domain-loading" role="status" aria-live="polite" class="htmx-indicator inline-flex items-center gap-2 text-[14px] text-[#0e7490]">
+        {{ icon("loader", 16, "dc-spin") }}
+        <span>Starting DNS checks...</span>
       </span>
     </div>
   </form>
@@ -40,32 +41,32 @@
 <div id="domain-report" class="mt-6" aria-live="polite"></div>
 
 {% elif active_tab == "server" %}
-<section aria-labelledby="server-test-heading" class="rounded-lg border border-zinc-200 p-6">
-  <h1 id="server-test-heading" class="text-lg font-semibold text-zinc-950">Test a mail server</h1>
-  <p id="server-test-hint" class="mt-1 text-zinc-600">
+<section aria-labelledby="server-test-heading" class="dc-card p-6 sm:p-8">
+  <h1 id="server-test-heading" class="text-[20px] leading-snug font-semibold text-slate-900">Test a mail server</h1>
+  <p id="server-test-hint" class="mt-1.5 text-[15px] text-slate-600">
     Enter an email address to connect to its receiving mail servers and test STARTTLS, certificate validity, reverse
     DNS, open relay safety, and mailbox acceptance.
   </p>
 
   <form hx-post="/server/receive" hx-target="#server-report" hx-swap="innerHTML" hx-indicator="#server-loading"
-    class="mt-5 space-y-3">
+    class="mt-6 space-y-3">
     <div class="flex flex-col gap-3 sm:flex-row">
-      <div class="flex-1">
+      <div class="flex-1 min-w-0">
         <label for="server-email-input" class="sr-only">Email address to test</label>
         <input id="server-email-input" name="email" type="email" placeholder="info@yourstore.com"
           aria-describedby="server-test-hint" autocomplete="off" spellcheck="false" required
-          class="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-zinc-950 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none">
+          class="dc-input">
       </div>
-      <button type="submit"
-        class="rounded-lg bg-zinc-950 px-6 py-2.5 font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2">
-        Test
+      <button type="submit" class="dc-btn-primary shrink-0 sm:px-7">
+        Test server
       </button>
     </div>
 
-    <div class="flex items-center justify-between text-xs text-zinc-500">
+    <div class="flex flex-wrap items-center justify-between gap-2 text-[13px] text-slate-600">
       <span>Never sends email body data (DATA) to third-party servers.</span>
-      <span id="server-loading" role="status" aria-live="polite" class="htmx-indicator text-zinc-600">
-        Connecting to mail servers...
+      <span id="server-loading" role="status" aria-live="polite" class="htmx-indicator inline-flex items-center gap-2 text-[#0e7490]">
+        {{ icon("loader", 16, "dc-spin") }}
+        <span>Connecting to mail servers...</span>
       </span>
     </div>
   </form>
@@ -74,19 +75,19 @@
 <div id="server-report" class="mt-6" aria-live="polite"></div>
 
 {% elif active_tab == "email" %}
-<section aria-labelledby="test-email-heading" class="rounded-lg border border-zinc-200 p-6">
-  <h1 id="test-email-heading" class="text-lg font-semibold text-zinc-950">Send a test email</h1>
-  <p class="mt-1 text-zinc-600">
+<section aria-labelledby="test-email-heading" class="dc-card p-6 sm:p-8">
+  <h1 id="test-email-heading" class="text-[20px] leading-snug font-semibold text-slate-900">Send a test email</h1>
+  <p id="test-email-hint" class="mt-1.5 text-[15px] text-slate-600">
     Generate a unique temporary address and send a real message to it. DeliverCheck independently verifies SPF, DKIM,
     DMARC alignment, TLS, reverse DNS, and unsubscribe headers.
   </p>
 
-  <div class="mt-5 flex flex-wrap items-center gap-3">
+  <div class="mt-6 flex flex-wrap items-center gap-4">
     <button type="button" hx-post="/inbox/new" hx-target="#inbox-panel" hx-swap="innerHTML"
-      class="rounded-lg bg-zinc-950 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2">
+      aria-describedby="test-email-hint" class="dc-btn-primary">
       Create test address
     </button>
-    <span class="text-xs text-zinc-500">
+    <span class="text-[13px] text-slate-600">
       Kept in memory for 15 minutes, then deleted. Attachments are never stored (1 MB max).
     </span>
   </div>
@@ -95,64 +96,132 @@
 <div id="inbox-panel" class="mt-6" aria-live="polite"></div>
 {% endif %}
 
-<section aria-labelledby="why-heading" class="mt-12 pt-8 border-t border-zinc-200">
-  <h2 id="why-heading" class="text-base font-semibold text-zinc-950">Why DeliverCheck?</h2>
-  <ul class="mt-4 grid gap-3 sm:grid-cols-2 text-sm text-zinc-700">
-    <li class="rounded-lg border border-zinc-200 p-4">
-      One focused flow per question, running every related DNS and mail check together in parallel.
+<section aria-labelledby="why-heading" class="mt-12">
+  <h2 id="why-heading" class="text-[20px] leading-snug font-semibold text-slate-900">Why DeliverCheck?</h2>
+  <ul class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <li class="dc-card p-5">
+      <div class="flex items-start gap-3">
+        {{ icon("layers", 20, "text-[#0e7490] mt-0.5") }}
+        <div class="min-w-0">
+          <h3 class="text-[15px] font-semibold text-slate-900">One focused flow</h3>
+          <p class="mt-1 text-[14px] text-slate-600">
+            Every related DNS and mail check runs together in parallel.
+          </p>
+        </div>
+      </div>
     </li>
-    <li class="rounded-lg border border-zinc-200 p-4">
-      Plain-English explanations first, with raw records and SMTP transcripts tucked cleanly underneath.
+    <li class="dc-card p-5">
+      <div class="flex items-start gap-3">
+        {{ icon("file-text", 20, "text-[#0e7490] mt-0.5") }}
+        <div class="min-w-0">
+          <h3 class="text-[15px] font-semibold text-slate-900">Plain English first</h3>
+          <p class="mt-1 text-[14px] text-slate-600">
+            Clear diagnosis up front, with raw records and SMTP transcripts below.
+          </p>
+        </div>
+      </div>
     </li>
-    <li class="rounded-lg border border-zinc-200 p-4">
-      Copy-ready fixes written for your domain, including merged SPF records within the 10-lookup limit.
+    <li class="dc-card p-5">
+      <div class="flex items-start gap-3">
+        {{ icon("wrench", 20, "text-[#0e7490] mt-0.5") }}
+        <div class="min-w-0">
+          <h3 class="text-[15px] font-semibold text-slate-900">Copy-ready fixes</h3>
+          <p class="mt-1 text-[14px] text-slate-600">
+            Suggested records for your domain, including merged SPF within the 10-lookup limit.
+          </p>
+        </div>
+      </div>
     </li>
-    <li class="rounded-lg border border-zinc-200 p-4">
-      Recognizes Google Workspace, Microsoft 365, Zoho, Shopify, Klaviyo, Mailchimp, SendGrid, Amazon SES, Hostinger,
-      and cPanel.
+    <li class="dc-card p-5">
+      <div class="flex items-start gap-3">
+        {{ icon("building", 20, "text-[#0e7490] mt-0.5") }}
+        <div class="min-w-0">
+          <h3 class="text-[15px] font-semibold text-slate-900">Provider-aware checks</h3>
+          <p class="mt-1 text-[14px] text-slate-600">
+            Recognizes Google Workspace, Microsoft 365, Zoho, Shopify, Klaviyo, Mailchimp, SendGrid, Amazon SES, Hostinger, and cPanel.
+          </p>
+        </div>
+      </div>
     </li>
-    <li class="rounded-lg border border-zinc-200 p-4">
-      Checks Gmail and Yahoo 2024 sender requirements and detects your DNS host so you know where to add each record.
+    <li class="dc-card p-5">
+      <div class="flex items-start gap-3">
+        {{ icon("clipboard-check", 20, "text-[#0e7490] mt-0.5") }}
+        <div class="min-w-0">
+          <h3 class="text-[15px] font-semibold text-slate-900">2024 sender rules &amp; DNS host</h3>
+          <p class="mt-1 text-[14px] text-slate-600">
+            Checks Gmail and Yahoo 2024 requirements and detects your DNS host so you know where to add records.
+          </p>
+        </div>
+      </div>
     </li>
-    <li class="rounded-lg border border-zinc-200 p-4">
-      Free to use with no sign-up walls, no credits, no tracking cookies, and no ads.
+    <li class="dc-card p-5">
+      <div class="flex items-start gap-3">
+        {{ icon("shield", 20, "text-[#0e7490] mt-0.5") }}
+        <div class="min-w-0">
+          <h3 class="text-[15px] font-semibold text-slate-900">Free and private</h3>
+          <p class="mt-1 text-[14px] text-slate-600">
+            No sign-up walls, no credits, no tracking cookies, and no ads.
+          </p>
+        </div>
+      </div>
     </li>
   </ul>
 </section>
 
-<section aria-labelledby="how-heading" class="mt-10 pt-8 border-t border-zinc-200">
-  <h2 id="how-heading" class="text-base font-semibold text-zinc-950">How email delivery works</h2>
-  <dl class="mt-4 divide-y divide-zinc-200 rounded-lg border border-zinc-200 text-sm">
-    <div class="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-6 sm:gap-4">
-      <dt class="font-mono font-medium text-zinc-950">MX</dt>
-      <dd class="text-zinc-700 sm:col-span-5">
-        Tells other mail servers which host receives incoming email for your domain.
-      </dd>
-    </div>
-    <div class="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-6 sm:gap-4">
-      <dt class="font-mono font-medium text-zinc-950">SPF</dt>
-      <dd class="text-zinc-700 sm:col-span-5">
-        Lists the mail servers and sending services authorized to send email using your domain.
-      </dd>
-    </div>
-    <div class="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-6 sm:gap-4">
-      <dt class="font-mono font-medium text-zinc-950">DKIM</dt>
-      <dd class="text-zinc-700 sm:col-span-5">
-        Adds a cryptographic signature to each outgoing message so receivers can confirm it was not altered.
-      </dd>
-    </div>
-    <div class="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-6 sm:gap-4">
-      <dt class="font-mono font-medium text-zinc-950">DMARC</dt>
-      <dd class="text-zinc-700 sm:col-span-5">
-        Tells receiving servers what to do when SPF and DKIM fail alignment, and where to send reports.
-      </dd>
-    </div>
-    <div class="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-6 sm:gap-4">
-      <dt class="font-mono font-medium text-zinc-950">TLS</dt>
-      <dd class="text-zinc-700 sm:col-span-5">
-        Encrypts email in transit between mail servers so messages cannot be read or tampered with on the wire.
-      </dd>
-    </div>
-  </dl>
+<section aria-labelledby="how-heading" class="mt-12">
+  <h2 id="how-heading" class="text-[20px] leading-snug font-semibold text-slate-900">How email delivery works</h2>
+  <div class="dc-card mt-5 p-6 sm:p-7">
+    <ol class="grid grid-cols-1 gap-5 border-l border-[#e5e7eb] pl-5 lg:grid-cols-5 lg:gap-5 lg:border-l-0 lg:pl-0">
+      <li class="relative">
+        <div class="flex items-center gap-2 text-[#0e7490]">
+          {{ icon("inbox", 20) }}
+          <span class="font-mono text-[15px] font-semibold text-slate-900">MX</span>
+          <span class="hidden lg:block h-px flex-1 bg-[#e5e7eb]" aria-hidden="true"></span>
+        </div>
+        <p class="mt-2 text-[14px] text-slate-600">
+          Tells other mail servers which host receives incoming email for your domain.
+        </p>
+      </li>
+      <li class="relative">
+        <div class="flex items-center gap-2 text-[#0e7490]">
+          {{ icon("shield-check", 20) }}
+          <span class="font-mono text-[15px] font-semibold text-slate-900">SPF</span>
+          <span class="hidden lg:block h-px flex-1 bg-[#e5e7eb]" aria-hidden="true"></span>
+        </div>
+        <p class="mt-2 text-[14px] text-slate-600">
+          Lists the mail servers and sending services authorized to send email using your domain.
+        </p>
+      </li>
+      <li class="relative">
+        <div class="flex items-center gap-2 text-[#0e7490]">
+          {{ icon("key", 20) }}
+          <span class="font-mono text-[15px] font-semibold text-slate-900">DKIM</span>
+          <span class="hidden lg:block h-px flex-1 bg-[#e5e7eb]" aria-hidden="true"></span>
+        </div>
+        <p class="mt-2 text-[14px] text-slate-600">
+          Adds a cryptographic signature to each message so receivers can confirm it was not altered.
+        </p>
+      </li>
+      <li class="relative">
+        <div class="flex items-center gap-2 text-[#0e7490]">
+          {{ icon("file-check", 20) }}
+          <span class="font-mono text-[15px] font-semibold text-slate-900">DMARC</span>
+          <span class="hidden lg:block h-px flex-1 bg-[#e5e7eb]" aria-hidden="true"></span>
+        </div>
+        <p class="mt-2 text-[14px] text-slate-600">
+          Tells receiving servers what to do when SPF and DKIM fail alignment, and where to send reports.
+        </p>
+      </li>
+      <li class="relative">
+        <div class="flex items-center gap-2 text-[#0e7490]">
+          {{ icon("lock", 20) }}
+          <span class="font-mono text-[15px] font-semibold text-slate-900">TLS</span>
+        </div>
+        <p class="mt-2 text-[14px] text-slate-600">
+          Encrypts email in transit between mail servers so messages cannot be read or tampered with.
+        </p>
+      </li>
+    </ol>
+  </div>
 </section>
 {% endblock %}

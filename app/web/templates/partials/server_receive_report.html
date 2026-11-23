@@ -1,52 +1,69 @@
-{% from "partials/status_macros.html" import status_text %}
-<div class="space-y-6">
-  <section class="rounded-lg border border-zinc-200 p-6">
-    <div class="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <div class="flex flex-wrap items-center gap-3">
-          <h2 class="text-lg font-semibold text-zinc-950">
-            Ready to receive: {{ report.verdict_label }}
-          </h2>
-          {% if report.verdict == "ready" %}
-            {{ status_text("pass", "Ready") }}
-          {% elif report.verdict == "partly" %}
-            {{ status_text("warn", "Partly") }}
-          {% else %}
-            {{ status_text("fail", "Not ready") }}
-          {% endif %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/status_macros.html" import status_text, verdict_icon, copy_button %}
+
+{% set border_color = "border-l-emerald-600" if report.verdict == "ready" else ("border-l-amber-600" if report.verdict == "partly" else "border-l-red-600") %}
+{% set fail_count = (report.issues | selectattr("severity", "equalto", "fail") | list | length) %}
+{% set warn_count = (report.issues | selectattr("severity", "equalto", "warn") | list | length) %}
+
+<div class="space-y-6 dc-fade-in">
+  <section class="dc-card border-l-4 {{ border_color }} p-6 sm:p-7">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex items-start gap-4 min-w-0">
+        {{ verdict_icon(report.verdict) }}
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <h2 class="text-[18px] leading-snug font-semibold text-slate-900">
+              Ready to receive: {{ report.verdict_label }}
+            </h2>
+            {% if report.verdict == "ready" %}
+              {{ status_text("pass", "Ready") }}
+            {% elif report.verdict == "partly" %}
+              {{ status_text("warn", "Partly") }}
+            {% else %}
+              {{ status_text("fail", "Not ready") }}
+            {% endif %}
+          </div>
+          <p class="mt-1 text-[15px] text-slate-800">{{ report.verdict_summary }}</p>
+          <p class="mt-1.5 text-[13px] text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-1">
+            {% if fail_count > 0 %}
+              <span class="font-medium text-red-700">{{ fail_count }} problem{{ "" if fail_count == 1 else "s" }} to fix</span>
+            {% elif warn_count > 0 %}
+              <span class="font-medium text-amber-700">{{ warn_count }} warning{{ "" if warn_count == 1 else "s" }}</span>
+            {% else %}
+              <span class="font-medium text-emerald-700">All checks passed</span>
+            {% endif %}
+            <span aria-hidden="true">·</span>
+            <span class="font-mono text-slate-700">{{ report.email }}</span>
+            {% if report.provider %}
+              <span aria-hidden="true">·</span>
+              <span>{{ report.provider.name }}</span>
+            {% endif %}
+          </p>
         </div>
-        <p class="mt-2 text-base text-zinc-900">{{ report.verdict_summary }}</p>
-        <p class="mt-1 text-xs text-zinc-500 font-mono">
-          Tested mailbox: {{ report.email }}{% if report.provider %} · Provider: {{ report.provider.name }}{% endif %}
-        </p>
       </div>
 
-      <button
-        type="button"
-        data-copy-target="receive-plain-text-report"
-        class="rounded-lg border border-zinc-300 bg-white px-3.5 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
-      >
-        Copy report
-      </button>
+      <div class="shrink-0 self-start">
+        {{ copy_button("Copy report", copy_target="receive-plain-text-report") }}
+      </div>
     </div>
 
     <textarea id="receive-plain-text-report" class="sr-only" readonly aria-hidden="true">{{ plain_text_report }}</textarea>
   </section>
 
   {% if report.issues %}
-  <section aria-labelledby="server-findings-heading" class="rounded-lg border border-zinc-200 p-6">
-    <h3 id="server-findings-heading" class="text-base font-semibold text-zinc-950">Findings</h3>
-    <div class="mt-4 divide-y divide-zinc-200 border-t border-zinc-200">
+  <section aria-labelledby="server-findings-heading" class="dc-card p-6 sm:p-7">
+    <h3 id="server-findings-heading" class="text-[20px] leading-snug font-semibold text-slate-900">Findings</h3>
+    <div class="mt-4 divide-y divide-[#e5e7eb] border-t border-[#e5e7eb]">
       {% for issue in report.issues %}
-      <article class="py-3.5 space-y-1.5">
+      <article class="py-4 space-y-1.5">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h4 class="text-sm font-semibold text-zinc-950">{{ issue.title }}</h4>
+          <h4 class="text-[15px] font-semibold text-slate-900">{{ issue.title }}</h4>
           {{ status_text(issue.severity) }}
         </div>
-        <p class="text-sm text-zinc-700">{{ issue.detail }}</p>
+        <p class="text-[14px] text-slate-600">{{ issue.detail }}</p>
         {% if issue.fix %}
-        <p class="text-sm text-zinc-800">
-          <span class="font-medium text-zinc-950">Fix:</span> {{ issue.fix }}
+        <p class="text-[14px] text-slate-800">
+          <span class="font-semibold text-slate-900">Fix:</span> {{ issue.fix }}
         </p>
         {% endif %}
       </article>
@@ -56,219 +73,241 @@
   {% endif %}
 
   {% for host in report.hosts %}
-  <section class="rounded-lg border border-zinc-200 p-6 space-y-4">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h3 class="text-base font-semibold text-zinc-950 font-mono">
-          {{ host.mx_host }}
-        </h3>
-        <p class="text-xs text-zinc-500 font-mono mt-0.5">
-          Priority {{ host.priority }} · IP {{ host.ip or "unresolved" }}
-          {% if host.connect_ms is not none %} · Connect {{ host.connect_ms | round | int }} ms{% endif %}
-          {% if host.banner_ms is not none %} · Banner {{ host.banner_ms | round | int }} ms{% endif %}
-        </p>
+  {% set host_problems = (host.issues | selectattr("severity", "in", ["fail", "warn"]) | list | length) %}
+  {% set host_open = (loop.first or not host.reachable or host_problems > 0) %}
+  <details class="dc-card overflow-hidden" {% if host_open %}open{% endif %}>
+    <summary class="flex flex-wrap items-center justify-between gap-4 px-6 py-5 transition-colors duration-150 hover:bg-[#f6f8fa]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0e7490]">
+      <div class="flex items-start gap-3 min-w-0">
+        {{ icon("server", 20, "text-[#0e7490] mt-0.5") }}
+        <div class="min-w-0">
+          <h3 class="text-[18px] leading-snug font-semibold text-slate-900 font-mono break-all">
+            {{ host.mx_host }}
+          </h3>
+          <p class="text-[13px] text-slate-600 font-mono mt-0.5">
+            Priority {{ host.priority }} · IP {{ host.ip or "unresolved" }}
+            {% if host.connect_ms is not none %} · Connect {{ host.connect_ms | round | int }} ms{% endif %}
+            {% if host.banner_ms is not none %} · Banner {{ host.banner_ms | round | int }} ms{% endif %}
+          </p>
+        </div>
       </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        {% if not host.reachable %}
+          {{ status_text("fail", "Unreachable") }}
+        {% elif host_problems > 0 %}
+          {{ status_text("warn", (host_problems | string) + (" issue" if host_problems == 1 else " issues")) }}
+        {% else %}
+          {{ status_text("pass", "Reachable") }}
+        {% endif %}
+        {{ icon("chevron-down", 18, "dc-chevron text-slate-500") }}
+      </div>
+    </summary>
+
+    <div class="border-t border-[#e5e7eb] px-6 py-5 space-y-5">
       {% if host.reachable %}
-        {{ status_text("pass", "Reachable") }}
-      {% else %}
-        {{ status_text("fail", "Unreachable") }}
+      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 text-[14px]">
+        <div>
+          <dt class="text-[13px] text-slate-600 inline-flex items-center gap-1.5">
+            {{ icon("lock", 15, "text-slate-500") }}
+            <span>STARTTLS &amp; TLS</span>
+          </dt>
+          <dd class="mt-1 text-slate-900">
+            {% if host.supports_starttls %}
+              {% if host.certificate and host.certificate.verified %}
+                {{ status_text("pass", host.tls_version or "TLS verified") }}
+              {% else %}
+                {{ status_text("warn", (host.tls_version or "TLS") + " (certificate issue)") }}
+              {% endif %}
+            {% else %}
+              {{ status_text("warn", "Not supported") }}
+            {% endif %}
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-[13px] text-slate-600">Certificate</dt>
+          <dd class="mt-1 text-[13px] font-mono text-slate-800">
+            {% if host.certificate %}
+              {% if host.certificate.not_after %}
+                Expires {{ host.certificate.not_after.strftime("%Y-%m-%d") }}
+                ({{ host.certificate.days_until_expiry }} days)
+              {% endif %}
+              · Hostname {{ "matches" if host.certificate.hostname_matches else "mismatch" }}
+            {% else %}
+              Not available
+            {% endif %}
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-[13px] text-slate-600">Reverse DNS (PTR)</dt>
+          <dd class="mt-1 text-[13px] font-mono text-slate-800 break-all">
+            {% if host.ptr_hostname %}
+              {{ host.ptr_hostname }} ({{ "forward-confirmed" if host.fcrdns_valid else "not forward-confirmed" }})
+            {% else %}
+              No PTR record
+            {% endif %}
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-[13px] text-slate-600">Open relay test</dt>
+          <dd class="mt-1">
+            {% if host.relay_status == "rejected" %}
+              {{ status_text("pass", "Rejected (safe)") }}
+            {% elif host.relay_status == "open_relay" %}
+              {{ status_text("fail", "Open relay detected") }}
+            {% else %}
+              {{ status_text("info", "Inconclusive") }}
+            {% endif %}
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-[13px] text-slate-600">Mailbox check ({{ report.email }})</dt>
+          <dd class="mt-1">
+            {% if host.mailbox_status == "accepted" %}
+              {{ status_text("pass", "Accepted") }}
+            {% elif host.mailbox_status == "catch_all" %}
+              {{ status_text("info", "Catch-all (accepts any address)") }}
+            {% elif host.mailbox_status == "greylisted" %}
+              {{ status_text("warn", "Temporarily deferred (greylisting)") }}
+            {% elif host.mailbox_status == "rejected" %}
+              {{ status_text("fail", "Rejected (user unknown)") }}
+            {% elif host.mailbox_status == "refused" %}
+              {{ status_text("info", "Server refused to tell") }}
+            {% else %}
+              {{ status_text("info", "Not tested") }}
+            {% endif %}
+          </dd>
+        </div>
+
+        {% if host.ehlo_capabilities %}
+        <div>
+          <dt class="text-[13px] text-slate-600">EHLO capabilities</dt>
+          <dd class="mt-1 text-[13px] font-mono text-slate-700">{{ host.ehlo_capabilities | join(", ") }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+      {% endif %}
+
+      {% if host.transcript %}
+      <details class="border-t border-[#e5e7eb] pt-4">
+        <summary class="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-600 transition-colors duration-150 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7490] rounded">
+          {{ icon("chevron-down", 15, "dc-chevron") }}
+          <span>SMTP conversation (raw transcript)</span>
+        </summary>
+        <pre class="mt-3 rounded-lg border border-[#e5e7eb] bg-[#f6f8fa] p-3.5 text-[13px] font-mono text-slate-800 overflow-x-auto whitespace-pre-wrap">{{ host.transcript }}</pre>
+      </details>
       {% endif %}
     </div>
-
-    {% if host.reachable %}
-    <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm border-t border-zinc-200 pt-4">
-      <div>
-        <dt class="text-xs text-zinc-500">STARTTLS &amp; TLS</dt>
-        <dd class="mt-0.5 text-zinc-900">
-          {% if host.supports_starttls %}
-            {% if host.certificate and host.certificate.verified %}
-              {{ status_text("pass", host.tls_version or "TLS verified") }}
-            {% else %}
-              {{ status_text("warn", (host.tls_version or "TLS") + " (certificate issue)") }}
-            {% endif %}
-          {% else %}
-            {{ status_text("warn", "Not supported") }}
-          {% endif %}
-        </dd>
-      </div>
-
-      <div>
-        <dt class="text-xs text-zinc-500">Certificate</dt>
-        <dd class="mt-0.5 text-xs font-mono text-zinc-800">
-          {% if host.certificate %}
-            {% if host.certificate.not_after %}
-              Expires {{ host.certificate.not_after.strftime("%Y-%m-%d") }}
-              ({{ host.certificate.days_until_expiry }} days)
-            {% endif %}
-            · Hostname {{ "matches" if host.certificate.hostname_matches else "mismatch" }}
-          {% else %}
-            Not available
-          {% endif %}
-        </dd>
-      </div>
-
-      <div>
-        <dt class="text-xs text-zinc-500">Reverse DNS (PTR)</dt>
-        <dd class="mt-0.5 text-xs font-mono text-zinc-800">
-          {% if host.ptr_hostname %}
-            {{ host.ptr_hostname }} ({{ "forward-confirmed" if host.fcrdns_valid else "not forward-confirmed" }})
-          {% else %}
-            No PTR record
-          {% endif %}
-        </dd>
-      </div>
-
-      <div>
-        <dt class="text-xs text-zinc-500">Open relay test</dt>
-        <dd class="mt-0.5">
-          {% if host.relay_status == "rejected" %}
-            {{ status_text("pass", "Rejected (safe)") }}
-          {% elif host.relay_status == "open_relay" %}
-            {{ status_text("fail", "Open relay detected") }}
-          {% else %}
-            {{ status_text("info", "Inconclusive") }}
-          {% endif %}
-        </dd>
-      </div>
-
-      <div>
-        <dt class="text-xs text-zinc-500">Mailbox check ({{ report.email }})</dt>
-        <dd class="mt-0.5">
-          {% if host.mailbox_status == "accepted" %}
-            {{ status_text("pass", "Accepted") }}
-          {% elif host.mailbox_status == "catch_all" %}
-            {{ status_text("info", "Catch-all (accepts any address)") }}
-          {% elif host.mailbox_status == "greylisted" %}
-            {{ status_text("warn", "Temporarily deferred (greylisting)") }}
-          {% elif host.mailbox_status == "rejected" %}
-            {{ status_text("fail", "Rejected (user unknown)") }}
-          {% elif host.mailbox_status == "refused" %}
-            {{ status_text("info", "Server refused to tell") }}
-          {% else %}
-            {{ status_text("info", "Not tested") }}
-          {% endif %}
-        </dd>
-      </div>
-
-      {% if host.ehlo_capabilities %}
-      <div>
-        <dt class="text-xs text-zinc-500">EHLO capabilities</dt>
-        <dd class="mt-0.5 text-xs font-mono text-zinc-700">{{ host.ehlo_capabilities | join(", ") }}</dd>
-      </div>
-      {% endif %}
-    </dl>
-    {% endif %}
-
-    {% if host.transcript %}
-    <details class="border-t border-zinc-200 pt-3">
-      <summary class="cursor-pointer text-xs font-medium text-zinc-600 hover:text-zinc-950">
-        SMTP conversation (raw transcript)
-      </summary>
-      <pre class="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs font-mono text-zinc-800 overflow-x-auto whitespace-pre-wrap">{{ host.transcript }}</pre>
-    </details>
-    {% endif %}
-  </section>
+  </details>
   {% endfor %}
 
-  <section class="rounded-lg border border-zinc-200 p-6">
+  <section class="dc-card overflow-hidden">
     <details>
-      <summary class="cursor-pointer text-base font-semibold text-zinc-950">
-        Also test sending (optional)
+      <summary class="flex items-center justify-between gap-4 px-6 py-5 transition-colors duration-150 hover:bg-[#f6f8fa]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0e7490]">
+        <div class="flex items-center gap-3">
+          {{ icon("send", 20, "text-[#0e7490]") }}
+          <span class="text-[18px] leading-snug font-semibold text-slate-900">Also test sending (optional)</span>
+        </div>
+        {{ icon("chevron-down", 18, "dc-chevron text-slate-500") }}
       </summary>
-      <p class="mt-2 text-sm text-zinc-600">
-        Test outgoing SMTP login, TLS certificate, and send one test message to DeliverCheck's temporary test inbox. Credentials are used once in memory, never logged or stored, and masked in the transcript.
-      </p>
-      {% if report.provider and report.provider.smtp_auth_hint %}
-      <p class="mt-2 text-xs text-zinc-600 border-l-2 border-zinc-300 pl-3">
-        {{ report.provider.name }}: {{ report.provider.smtp_auth_hint }}
-      </p>
-      {% endif %}
 
-      <form
-        hx-post="/server/send"
-        hx-target="#send-test-report"
-        hx-swap="innerHTML"
-        hx-indicator="#send-loading"
-        class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"
-      >
-        <input type="hidden" name="from_email" value="{{ report.email }}">
+      <div class="border-t border-[#e5e7eb] px-6 py-5">
+        <p class="text-[14px] text-slate-600">
+          Test outgoing SMTP login, TLS certificate, and send one test message to DeliverCheck's temporary test inbox. Credentials are used once in memory, never logged or stored, and masked in the transcript.
+        </p>
+        {% if report.provider and report.provider.smtp_auth_hint %}
+        <p class="mt-3 text-[13px] text-slate-700 border-l-2 border-[#0e7490] bg-[#ecfeff]/60 rounded-r-md py-2 px-3">
+          <strong class="font-semibold text-slate-900">{{ report.provider.name }}:</strong> {{ report.provider.smtp_auth_hint }}
+        </p>
+        {% endif %}
 
-        <div>
-          <label for="send-smtp-host" class="block text-xs font-medium text-zinc-700">SMTP host</label>
-          <input
-            id="send-smtp-host"
-            name="smtp_host"
-            type="text"
-            value="{{ report.suggested_smtp_host or '' }}"
-            placeholder="smtp.gmail.com"
-            autocomplete="off"
-            required
-            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm font-mono text-zinc-950 focus:border-zinc-950 focus:outline-none"
-          >
-        </div>
+        <form
+          hx-post="/server/send"
+          hx-target="#send-test-report"
+          hx-swap="innerHTML"
+          hx-indicator="#send-loading"
+          class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2"
+        >
+          <input type="hidden" name="from_email" value="{{ report.email }}">
 
-        <div>
-          <label for="send-port-mode" class="block text-xs font-medium text-zinc-700">Port &amp; security</label>
-          <div class="mt-1 flex gap-2">
-            <select
-              id="send-port-mode"
-              name="port"
-              class="w-1/2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 focus:border-zinc-950 focus:outline-none"
+          <div>
+            <label for="send-smtp-host" class="block text-[14px] font-medium text-slate-700">SMTP host</label>
+            <input
+              id="send-smtp-host"
+              name="smtp_host"
+              type="text"
+              value="{{ report.suggested_smtp_host or '' }}"
+              placeholder="smtp.gmail.com"
+              autocomplete="off"
+              required
+              class="dc-input mt-1.5 font-mono text-[15px]"
             >
-              <option value="587" {% if report.suggested_smtp_port == 587 %}selected{% endif %}>587</option>
-              <option value="465" {% if report.suggested_smtp_port == 465 %}selected{% endif %}>465</option>
-            </select>
-            <label for="send-security-mode" class="sr-only">TLS security mode</label>
-            <select
-              id="send-security-mode"
-              name="security_mode"
-              class="w-1/2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 focus:border-zinc-950 focus:outline-none"
-            >
-              <option value="starttls" {% if report.suggested_smtp_port == 587 %}selected{% endif %}>STARTTLS</option>
-              <option value="implicit_tls" {% if report.suggested_smtp_port == 465 %}selected{% endif %}>Implicit TLS</option>
-            </select>
           </div>
-        </div>
 
-        <div>
-          <label for="send-username" class="block text-xs font-medium text-zinc-700">Username</label>
-          <input
-            id="send-username"
-            name="username"
-            type="text"
-            value="{{ report.email }}"
-            autocomplete="off"
-            required
-            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-950 focus:border-zinc-950 focus:outline-none"
-          >
-        </div>
+          <div>
+            <label for="send-port-mode" class="block text-[14px] font-medium text-slate-700">Port &amp; security</label>
+            <div class="mt-1.5 flex gap-2.5">
+              <select
+                id="send-port-mode"
+                name="port"
+                class="dc-input w-1/2 text-[15px]"
+              >
+                <option value="587" {% if report.suggested_smtp_port == 587 %}selected{% endif %}>587</option>
+                <option value="465" {% if report.suggested_smtp_port == 465 %}selected{% endif %}>465</option>
+              </select>
+              <label for="send-security-mode" class="sr-only">TLS security mode</label>
+              <select
+                id="send-security-mode"
+                name="security_mode"
+                class="dc-input w-1/2 text-[15px]"
+              >
+                <option value="starttls" {% if report.suggested_smtp_port == 587 %}selected{% endif %}>STARTTLS</option>
+                <option value="implicit_tls" {% if report.suggested_smtp_port == 465 %}selected{% endif %}>Implicit TLS</option>
+              </select>
+            </div>
+          </div>
 
-        <div>
-          <label for="send-password" class="block text-xs font-medium text-zinc-700">Password or App Password</label>
-          <input
-            id="send-password"
-            name="password"
-            type="password"
-            autocomplete="off"
-            required
-            class="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-950 focus:border-zinc-950 focus:outline-none"
-          >
-        </div>
+          <div>
+            <label for="send-username" class="block text-[14px] font-medium text-slate-700">Username</label>
+            <input
+              id="send-username"
+              name="username"
+              type="text"
+              value="{{ report.email }}"
+              autocomplete="off"
+              required
+              class="dc-input mt-1.5 text-[15px]"
+            >
+          </div>
 
-        <div class="sm:col-span-2 flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            class="rounded-lg bg-zinc-950 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2"
-          >
-            Test sending
-          </button>
-          <span id="send-loading" role="status" aria-live="polite" class="htmx-indicator text-xs text-zinc-500">
-            Connecting and authenticating over TLS...
-          </span>
-        </div>
-      </form>
+          <div>
+            <label for="send-password" class="block text-[14px] font-medium text-slate-700">Password or App Password</label>
+            <input
+              id="send-password"
+              name="password"
+              type="password"
+              autocomplete="off"
+              required
+              class="dc-input mt-1.5 text-[15px]"
+            >
+          </div>
 
-      <div id="send-test-report" class="mt-6" aria-live="polite"></div>
+          <div class="sm:col-span-2 flex flex-wrap items-center gap-4 pt-1">
+            <button type="submit" class="dc-btn-primary">
+              Test sending
+            </button>
+            <span id="send-loading" role="status" aria-live="polite" class="htmx-indicator inline-flex items-center gap-2 text-[14px] text-[#0e7490]">
+              {{ icon("loader", 16, "dc-spin") }}
+              <span>Connecting and authenticating over TLS...</span>
+            </span>
+          </div>
+        </form>
+
+        <div id="send-test-report" class="mt-6" aria-live="polite"></div>
+      </div>
     </details>
   </section>
 </div>
