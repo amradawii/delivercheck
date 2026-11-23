@@ -119,8 +119,13 @@ async def test_dkim_1024_rsa_warns_to_upgrade_and_512_rsa_fails() -> None:
     assert res_1024.found_keys[0].detected_provider.id == "microsoft_365"
     assert any("2048-bit recommended" in i.title for i in res_1024.issues)
 
-    priv_512 = rsa.generate_private_key(public_exponent=65537, key_size=512)
-    weak_der = priv_512.public_key().public_bytes(
+    # cryptography 50+ refuses generating 512-bit RSA private keys, so construct a
+    # 512-bit RSA public key directly via RSAPublicNumbers to test weak-key detection.
+    weak_pub = rsa.RSAPublicNumbers(
+        e=65537,
+        n=(1 << 511) | 0x123456789ABCDEF1,
+    ).public_key()
+    weak_der = weak_pub.public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )

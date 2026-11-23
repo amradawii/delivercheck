@@ -572,8 +572,7 @@ async def test_mx_host_receive(
                     ReceiveIssue(
                         severity="fail",
                         title=(
-                            f"Mailbox {target_email} was rejected by {mx_host} "
-                            f"({rcpt_real.code})"
+                            f"Mailbox {target_email} was rejected by {mx_host} ({rcpt_real.code})"
                         ),
                         detail=f"The server rejected the recipient with '{mailbox_response}'.",
                         fix=(
@@ -784,7 +783,7 @@ async def run_receive_test(
     try:
         async with asyncio.timeout(dns_timeout):
             mx_result = await check_mx(norm_domain, resolver)
-    except (TimeoutError, Exception):
+    except TimeoutError, Exception:
         issue = ReceiveIssue(
             severity="fail",
             title="Could not look up MX records",

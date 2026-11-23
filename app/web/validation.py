@@ -58,8 +58,7 @@ def validate_domain_input(raw: str) -> DomainValidationResult:
         return DomainValidationResult(
             ok=False,
             error=(
-                "That looks like an email address. Enter only the domain name "
-                "(e.g. yourstore.com)."
+                "That looks like an email address. Enter only the domain name (e.g. yourstore.com)."
             ),
         )
 

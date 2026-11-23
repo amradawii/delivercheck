@@ -452,8 +452,7 @@ async def _run_send_test_core(
                         severity="fail",
                         title=f"Unexpected greeting ({banner.code}) from {clean_host}",
                         detail=(
-                            f"Expected 220 greeting, received: "
-                            f"{banner.code} {banner.first_line}."
+                            f"Expected 220 greeting, received: {banner.code} {banner.first_line}."
                         ),
                         fix="Verify the SMTP hostname and that your IP is allowed to connect.",
                     )
@@ -585,8 +584,7 @@ async def _run_send_test_core(
                         severity="fail",
                         title=f"STARTTLS rejected by {clean_host}",
                         detail=(
-                            f"Server returned {tls_resp.code} "
-                            f"{tls_resp.first_line} to STARTTLS."
+                            f"Server returned {tls_resp.code} {tls_resp.first_line} to STARTTLS."
                         ),
                         fix="Check TLS configuration on your outgoing SMTP server.",
                     )

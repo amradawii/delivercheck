@@ -1,7 +1,7 @@
-FROM python:3.12.3-slim-bookworm AS tailwind
+FROM python:3.14.10-slim-trixie AS tailwind
 
 ARG TARGETARCH
-ENV TAILWIND_VERSION=3.4.3
+ENV TAILWIND_VERSION=4.3.5
 
 WORKDIR /build
 
@@ -16,14 +16,13 @@ RUN apt-get update \
     && curl -fsSL "https://github.com/tailwindlabs/tailwindcss/releases/download/v${TAILWIND_VERSION}/tailwindcss-linux-${TW_ARCH}" -o /usr/local/bin/tailwindcss \
     && chmod +x /usr/local/bin/tailwindcss
 
-COPY tailwind.config.js ./
 COPY app/web/static/css/input.css ./app/web/static/css/input.css
 COPY app/web/templates ./app/web/templates
 
 RUN tailwindcss -i ./app/web/static/css/input.css -o ./app/web/static/css/app.css --minify
 
 
-FROM python:3.12.3-slim-bookworm AS runtime
+FROM python:3.14.10-slim-trixie AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

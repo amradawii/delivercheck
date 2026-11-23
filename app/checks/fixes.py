@@ -206,7 +206,7 @@ def suggest_dmarc_fix(dmarc: DMARCCheckResult) -> DMARCSuggestion | None:
 
     if dmarc.record is None:
         starter = (
-            f"v=DMARC1; p=none; rua=mailto:dmarc@{dmarc.organizational_domain}; " "adkim=r; aspf=r"
+            f"v=DMARC1; p=none; rua=mailto:dmarc@{dmarc.organizational_domain}; adkim=r; aspf=r"
         )
         return DMARCSuggestion(
             record=starter,

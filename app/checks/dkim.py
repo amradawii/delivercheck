@@ -496,8 +496,7 @@ async def check_dkim(
                     DKIMIssue(
                         severity="fail",
                         title=(
-                            f"Weak {parsed.key_bits}-bit RSA DKIM key on selector "
-                            f"'{item.selector}'"
+                            f"Weak {parsed.key_bits}-bit RSA DKIM key on selector '{item.selector}'"
                         ),
                         detail=(
                             f"{item.qname} uses a {parsed.key_bits}-bit RSA key, which is below "

@@ -122,7 +122,7 @@ async def safe_detect_dns_host(
     try:
         async with asyncio.timeout(timeout_seconds):
             return await detect_dns_host_for_domain(domain, resolver)
-    except (TimeoutError, Exception):
+    except TimeoutError, Exception:
         return None
 
 

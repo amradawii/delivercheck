@@ -106,8 +106,8 @@ docker run --rm delivercheck-dev bash -c "ruff check app tests && mypy app tests
 
 ## Tech stack
 
-- Python 3.12, FastAPI 0.111, Jinja2, htmx 1.9, Tailwind CSS 3.4 (standalone CLI), self-hosted Inter 4.0
-- `dnspython`, `cryptography`, `publicsuffixlist`, `aiosmtpd`, `dkimpy` (with Ed25519), Unbound recursive resolver
+- Python 3.14, FastAPI 0.165, Jinja2, htmx 2.0, Tailwind CSS 4.3 (standalone CLI), self-hosted Inter 4.1
+- `dnspython`, `cryptography`, `publicsuffixlist`, `aiosmtpd`, `dkimpy` (with Ed25519), Unbound recursive resolver (Alpine 3.24)
 
 ## License
 

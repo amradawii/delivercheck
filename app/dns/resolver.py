@@ -7,7 +7,7 @@ import ipaddress
 import socket
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Protocol
 
 import dns.asyncresolver
@@ -17,7 +17,7 @@ import dns.resolver
 import dns.reversename
 
 
-class DNSStatus(str, Enum):
+class DNSStatus(StrEnum):
     OK = "ok"
     NXDOMAIN = "nxdomain"
     NO_ANSWER = "no_answer"

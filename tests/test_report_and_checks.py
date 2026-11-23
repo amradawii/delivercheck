@@ -195,8 +195,7 @@ async def test_extras_mta_sts_mx_matching_and_ssrf_refusal() -> None:
             ok=True,
             status_code=200,
             body=(
-                "version: STSv1\nmode: enforce\n"
-                "mx: *.mail.protection.outlook.com\nmax_age: 86400\n"
+                "version: STSv1\nmode: enforce\nmx: *.mail.protection.outlook.com\nmax_age: 86400\n"
             ),
         )
 

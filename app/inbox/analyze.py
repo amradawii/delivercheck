@@ -288,7 +288,7 @@ async def analyze_received_email(
         try:
             async with asyncio.timeout(check_timeout):
                 return await _check_ptr(peer_ip, scoped)
-        except (TimeoutError, Exception):
+        except TimeoutError, Exception:
             return None, False
 
     async def _run_spf_safe() -> SPFEvalResult | None:
@@ -303,7 +303,7 @@ async def analyze_received_email(
                     scoped,
                     helo=helo_hostname,
                 )
-        except (ValueError, TimeoutError, Exception):
+        except ValueError, TimeoutError, Exception:
             return None
 
     async def _run_dkim_safe() -> tuple[DKIMSignatureReport, ...]:
@@ -312,7 +312,7 @@ async def analyze_received_email(
                 return await _verify_all_dkim_signatures(
                     raw_bytes, raw_dkim_headers, from_domain, scoped
                 )
-        except (TimeoutError, Exception):
+        except TimeoutError, Exception:
             return ()
 
     async def _run_dmarc_safe() -> DMARCCheckResult | None:
@@ -321,7 +321,7 @@ async def analyze_received_email(
         try:
             async with asyncio.timeout(check_timeout):
                 return await check_dmarc(from_domain, scoped)
-        except (TimeoutError, Exception):
+        except TimeoutError, Exception:
             return None
 
     ptr_res, spf_res, dkim_reports, dmarc_check = await asyncio.gather(
@@ -524,8 +524,7 @@ async def analyze_received_email(
                 severity="pass",
                 title=f"Delivered over TLS ({tls_version or 'encrypted'})",
                 detail=(
-                    "The sending server encrypted this delivery using "
-                    f"{tls_version or 'STARTTLS'}."
+                    f"The sending server encrypted this delivery using {tls_version or 'STARTTLS'}."
                 ),
             )
         )
@@ -600,8 +599,7 @@ async def analyze_received_email(
                     "missing IDs."
                 ),
                 fix=(
-                    "Configure your mailer or app library to generate a standard "
-                    "Message-ID header."
+                    "Configure your mailer or app library to generate a standard Message-ID header."
                 ),
             )
         )
